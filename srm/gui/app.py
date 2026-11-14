@@ -111,9 +111,17 @@ def run_bg(owner, fn, *args, on_done=None, on_fail=None, on_progress=None, **kwa
     w.failed.connect(th.quit)
     th.finished.connect(th.deleteLater)
     th.finished.connect(delivery.deleteLater)
+    owner._threads = [(t, wk) for t, wk in owner._threads if _thread_running(t)]  # forget finished workers
     owner._threads.append((th, w))
     th.start()
     return w
+
+
+def _thread_running(th) -> bool:
+    try:
+        return th.isRunning()
+    except RuntimeError:  # the Qt object was already deleted after the thread finished
+        return False
 
 
 # ---------------------------------------------------------------- waveform widget
@@ -255,6 +263,8 @@ class MainWindow(QMainWindow):
         self.engine = None
         self._threads: list = []
         self.current_job: int | None = None
+        self._job_running = False  # a job runner started by this window is active
+        self._closing = False
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
         self._build_menu()
@@ -410,14 +420,63 @@ class MainWindow(QMainWindow):
         ids = self.selected_track_ids() or [t["id"] for t in self.engine.list_tracks(self.selected_album())]
         if not ids:
             return
+        if self._job_running:
+            self.status.showMessage("Задание уже выполняется. Дождитесь его завершения или остановите его.")
+            return
         jid = self.engine.create_job(kind, ids, stages, params)
         self._run_job(jid)
 
     def _run_job(self, jid: int, retry_failed: bool = False):
+        if self._job_running:  # one job at a time: a second runner would process the same tracks twice
+            self.status.showMessage("Задание уже выполняется. Дождитесь его завершения или остановите его.")
+            return False
+        self._job_running = True
         self.current_job = jid
         self.job_fail.clear()
+
+        def done(st):
+            self._job_running = False
+            self._show_job(st)
+            self.refresh_tracks()
+
+        def fail(message):
+            self._job_running = False
+            self._poll_job()
+            QMessageBox.critical(self, APP_NAME, message)
+
         run_bg(self, self.engine.run_job, jid, retry_failed=retry_failed, workers=self.workers_spin.value(),
-               on_done=lambda st: (self._show_job(st), self.refresh_tracks()))
+               on_done=done, on_fail=fail)
+        return True
+
+    def _running_threads(self) -> list:
+        self._threads = [(t, w) for t, w in self._threads if _thread_running(t)]
+        return self._threads
+
+    def closeEvent(self, event):
+        """Never destroy a running worker thread: that aborts the process and leaves half-finished renders."""
+        for th, _ in self._running_threads():
+            th.wait(300)  # a worker that has just delivered its result needs a moment to leave its thread
+        if not self._running_threads():
+            super().closeEvent(event)
+            return
+        event.ignore()
+        if self._closing:
+            return
+        if QMessageBox.question(self, APP_NAME, "Обработка ещё идёт. Остановить после текущего трека и закрыть "
+                                                "программу?") != QMessageBox.Yes:
+            return
+        self._closing = True
+        if self.engine and self.current_job:
+            self.engine.cancel_job(self.current_job)
+        self.status.showMessage("Завершаем текущую операцию — окно закроется автоматически…")
+        self._close_timer = QTimer(self)
+        self._close_timer.timeout.connect(self._close_when_idle)
+        self._close_timer.start(300)
+
+    def _close_when_idle(self):
+        if not self._running_threads():
+            self._close_timer.stop()
+            self.close()
 
     def cancel_job(self):
         if self.engine and self.current_job:

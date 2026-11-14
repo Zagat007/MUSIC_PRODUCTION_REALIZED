@@ -22,7 +22,7 @@ from srm.ingest.decode import decode
 from srm.ingest.probe import probe
 from srm.release import metadata as M
 from srm.release.profiles import EXPORT_PROFILES, load_profiles
-from srm.release.validate import validate_package
+from srm.release.validate import failed_validation, validate_package
 
 
 class AlbumMixin:
@@ -65,28 +65,18 @@ class AlbumMixin:
         self.db.execute("UPDATE tracks SET gap_after_s=? WHERE id=?", (float(gap_after_s), int(track_id)))
 
     def set_track_metadata(self, track_id: int, update: dict) -> dict:
-        from srm.service.engine import _jdump
-
         clean = M.clean_track_meta(update)
-        t = self.track(track_id)
-        meta = t["metadata"]
-        meta.setdefault("release", {}).update(clean)
-        self.db.execute("UPDATE tracks SET metadata_json=? WHERE id=?", (_jdump(meta), int(track_id)))
+        self.track(track_id)  # raises for an unknown track
+        self._mutate_meta("tracks", int(track_id), lambda meta: meta.setdefault("release", {}).update(clean))
         if "title" in clean and clean["title"]:
             self.db.execute("UPDATE tracks SET title=? WHERE id=?", (clean["title"], int(track_id)))
         self.db.audit("track_metadata", {"track_id": track_id, "fields": sorted(clean)})
         return self.track(track_id)["metadata"]["release"]
 
     def set_album_metadata(self, album, update: dict) -> dict:
-        from srm.service.engine import _jdump
-
         aid = self.album_id(album)
         clean = M.clean_album_meta(update)
-        row = self.db.one("SELECT metadata_json FROM albums WHERE id=?", (aid,))
-        meta = json.loads(row["metadata_json"] or "{}")
-        meta.update(clean)
-        self.db.execute("UPDATE albums SET metadata_json=? WHERE id=?", (_jdump(meta), aid))
-        return meta
+        return self._mutate_meta("albums", aid, lambda meta: meta.update(clean))
 
     def set_style_override(self, track_id: int, preset: str | None) -> None:
         from srm.dsp.presets import PRESETS
@@ -169,12 +159,18 @@ class AlbumMixin:
         except BaseException:
             shutil.rmtree(build, ignore_errors=True)  # only our own temporary build dir
             raise
-        val = validate_package(final_dir, ceiling_dbtp=manifest["ceiling_dbtp"])
+        # The manifest hash is recorded outside the package, so a later edit of the manifest is detectable.
+        man_sha = sha256_file(final_dir / "processing_manifest.json")
+        try:
+            val = validate_package(final_dir, ceiling_dbtp=manifest["ceiling_dbtp"], expected_manifest_sha256=man_sha)
+        except Exception as exc:  # a published package must always carry a validation verdict and a DB record
+            val = failed_validation(final_dir, f"validator error: {type(exc).__name__}: {exc}", profile)
         atomic_write_text(final_dir / "release_validation.json", json.dumps(val, ensure_ascii=False, indent=1))
         atomic_write_text(final_dir / "album_qa.html", album_qa_html(arow["name"], manifest, val))
         self.db.execute("INSERT INTO exports (album_id, path, profile, status, manifest_json, created_at) "
                         "VALUES (?,?,?,?,?,?)", (aid, str(final_dir), profile, val["overall"],
-                                                 json.dumps({"tracks": len(chosen)}), time.time()))
+                                                 json.dumps({"tracks": len(chosen), "manifest_sha256": man_sha}),
+                                                 time.time()))
         self.db.audit("export", {"album": arow["name"], "dir": str(final_dir), "status": val["overall"]})
         return {"path": str(final_dir), "status": val["overall"], "technical": val["technical"],
                 "human_gates": val["human_gates"], "unresolved": manifest["unresolved"], "validation": val}
@@ -316,7 +312,9 @@ class AlbumMixin:
         if not dirs:
             raise ValueError("no export for this album")
         pkg = base / f"v{version:03d}" if version else dirs[-1]
-        return validate_package(pkg)
+        rec = self.db.one("SELECT manifest_json FROM exports WHERE path=? ORDER BY id DESC LIMIT 1", (str(pkg),))
+        recorded = json.loads(rec["manifest_json"] or "{}").get("manifest_sha256") if rec else None
+        return validate_package(pkg, expected_manifest_sha256=recorded)
 
 
 def album_qa_html(name: str, manifest: dict, val: dict) -> str:

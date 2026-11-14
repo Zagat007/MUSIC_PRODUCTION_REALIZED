@@ -123,12 +123,16 @@ def cmd_approve(e, a):
 
 
 def cmd_verify_sources(e, a):
-    bad = []
-    for t in e.list_tracks():
-        if Path(t["path"]).exists() and not e.verify_source_unchanged(t["id"]):
+    bad, missing = [], []
+    tracks = e.list_tracks()
+    for t in tracks:
+        if not Path(t["path"]).exists():
+            missing.append(t["path"])  # a vanished source is a finding, not a silent pass
+        elif not e.verify_source_unchanged(t["id"]):
             bad.append(t["path"])
-    _out({"checked": len(e.list_tracks()), "changed": bad, "status": "PASS" if not bad else "FAIL"})
-    return 0 if not bad else 3
+    ok = not bad and not missing
+    _out({"checked": len(tracks), "changed": bad, "missing": missing, "status": "PASS" if ok else "FAIL"})
+    return 0 if ok else 3
 
 
 def build_parser() -> argparse.ArgumentParser:

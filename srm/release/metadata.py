@@ -53,8 +53,11 @@ def clean_track_meta(update: dict) -> dict:
             v = normalize_isrc(v)
         if k in ("ai_generated_vocals", "ai_generated_music", "ai_generated_lyrics", "downloaded_while_on_paid_plan",
                  "user_confirms_commercial_rights", "samples_or_third_party_material",
-                 "distributor_ai_disclosure_completed", "explicit") and v not in (True, False, None, UNKNOWN):
-            raise MetadataError(f"{k} must be true/false/UNKNOWN")
+                 "distributor_ai_disclosure_completed", "explicit"):
+            if v not in (True, False, None, UNKNOWN):
+                raise MetadataError(f"{k} must be true/false/UNKNOWN")
+            if v is not None and v != UNKNOWN:
+                v = bool(v)  # 1/0 pass the check above (1 == True) but must be stored as real booleans
         out[k] = v
     return out
 

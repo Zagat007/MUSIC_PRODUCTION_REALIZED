@@ -29,6 +29,8 @@ class RepairMixin:
         plan = plan_from_candidates(d["candidates"], d["listening_required"])
         x, fs = self._source_float(t)
         for ed in plan["edits"]:
+            if t["channels"] == 1:
+                ed["channel"] = None  # mono source is processed as dual mono: repair both output channels
             try:
                 y = apply_edit(x, fs, ed)
                 ed["regression"] = regression_check(x, y, fs, ed)
@@ -140,7 +142,7 @@ class RepairMixin:
 
     def import_stems(self, track_id: int, folder: str | Path) -> dict:
         """Register original stems for a track (read-only) and validate them against the mix."""
-        from srm.service.engine import EngineError, _jdump
+        from srm.service.engine import EngineError
 
         folder = Path(folder).resolve()
         roots = [Path(r["path"]) for r in self.library_roots()]
@@ -174,9 +176,7 @@ class RepairMixin:
                 "verdict": verdict,
                 "usage": ("Stems are registered for manual/external stem-based repair. The application does not "
                           "remix stems automatically.")}
-        meta = t["metadata"]
-        meta["stems"] = info
-        self.db.execute("UPDATE tracks SET metadata_json=? WHERE id=?", (_jdump(meta), track_id))
+        self._mutate_meta("tracks", track_id, lambda meta: meta.__setitem__("stems", info))
         self.db.audit("stems_imported", {"track_id": track_id, "verdict": verdict, "n": len(stems)})
         return info
 

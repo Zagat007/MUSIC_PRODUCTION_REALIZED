@@ -85,8 +85,8 @@ class ArtworkMixin:
         path = ensure_within(self.root / chosen['file'], self.root)
         if not path.is_file() or sha256_file(path) != chosen['sha256']:
             raise ValueError('Файл выбранного варианта изменён или отсутствует')
-        meta['artwork'] = chosen
-        self.db.execute('UPDATE albums SET metadata_json=? WHERE id=?', (json.dumps(meta, ensure_ascii=False), aid))
+        # Atomic update on fresh metadata: a description saved meanwhile must not be overwritten.
+        self._mutate_meta('albums', aid, lambda fresh: fresh.__setitem__('artwork', chosen))
         result = self.album_artwork(aid)
         result['previews'] = self.refresh_album_preview_artwork(aid)
         self.db.audit('album_cover_selected', {'album_id': aid, 'id': cover_id})

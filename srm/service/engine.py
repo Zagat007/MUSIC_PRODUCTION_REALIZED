@@ -44,6 +44,7 @@ AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", "
 TEXT_EXT = {".txt", ".md"}
 SKIP_DIRS = {".git", "$recycle.bin", "system volume information", "__pycache__", ".srm_project"}
 MIN_FREE_BYTES = 512 * 1024 * 1024
+STALE_RENDER_S = 6 * 3600  # a version still RENDERING after this long was interrupted (crash / forced close)
 
 
 class EngineError(RuntimeError):
@@ -97,6 +98,24 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         for sub in ("renders", "reports", "RELEASES", "logs", "previews"):
             (self.root / sub).mkdir(exist_ok=True)
         self._cancel_flags: dict[int, threading.Event] = {}
+        self._running_jobs: set[int] = set()
+        self._jobs_lock = threading.Lock()
+        self.db.execute("UPDATE versions SET status='FAILED', report_json=? WHERE status='RENDERING' AND created_at<?",
+                        (_jdump({"error": "interrupted: the application stopped during this render"}),
+                         _now() - STALE_RENDER_S))
+
+    def _mutate_meta(self, table: str, row_id: int, fn: Callable[[dict], None]) -> dict:
+        """Atomic read-modify-write of a metadata_json column (GUI, workers and MCP share one project)."""
+        if table not in ("albums", "tracks"):
+            raise ValueError(table)
+        with self.db.transaction():
+            row = self.db.one(f"SELECT metadata_json FROM {table} WHERE id=?", (int(row_id),))
+            if not row:
+                raise EngineError(f"{table[:-1]} not found: {row_id}")
+            meta = json.loads(row["metadata_json"] or "{}")
+            fn(meta)
+            self.db.execute(f"UPDATE {table} SET metadata_json=? WHERE id=?", (_jdump(meta), int(row_id)))
+        return meta
 
     # ------------------------------------------------------------------ meta
     @property
@@ -271,9 +290,22 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         return {"status": status, "error": err}
 
     def _ensure_album(self, name: str, folder_hint: str | None = None) -> int:
-        row = self.db.one("SELECT id FROM albums WHERE name=?", (name,))
+        # The folder identifies an album: a renamed album keeps receiving new files from its folder, and
+        # same-named folders under different library roots stay separate albums.
+        if folder_hint:
+            row = self.db.one("SELECT id FROM albums WHERE folder_hint=?", (folder_hint,))
+            if row:
+                return row["id"]
+        row = self.db.one("SELECT id, folder_hint FROM albums WHERE name=?", (name,))
         if row:
-            return row["id"]
+            other = row["folder_hint"]
+            if not folder_hint or not other or os.path.normcase(other) == os.path.normcase(folder_hint):
+                return row["id"]
+            base, n = name, 2
+            name = f"{base} ({Path(folder_hint).parent.name or 'library'})"
+            while self.db.one("SELECT 1 FROM albums WHERE name=?", (name,)):
+                name = f"{base} ({n})"
+                n += 1
         meta = {}
         num, clean = split_track_number(Path(name).name)
         if num is not None and folder_hint:
@@ -284,13 +316,19 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
     def _ingest_texts(self, texts: list[Path], audio: list[Path]) -> None:
         matches = match_texts(audio, texts)
         for tp in texts:
-            if self.db.one("SELECT id FROM text_files WHERE path=?", (str(tp),)):
-                continue
             try:
+                known = self.db.one("SELECT id, sha256 FROM text_files WHERE path=?", (str(tp),))
+                sha = sha256_file(tp)
+                if known and known["sha256"] == sha:
+                    continue
                 txt, enc, warns = read_text(tp)
                 parsed = parse_prompt_text(txt) | {"encoding_warnings": warns}
-                self.db.execute("INSERT INTO text_files (path, sha256, encoding, parsed_json, first_seen) VALUES (?,?,?,?,?)",
-                                (str(tp), sha256_file(tp), enc, _jdump(parsed), _now()))
+                if known:  # edited since the last scan: refresh the parsed prompt / lyrics
+                    self.db.execute("UPDATE text_files SET sha256=?, encoding=?, parsed_json=? WHERE id=?",
+                                    (sha, enc, _jdump(parsed), known["id"]))
+                else:
+                    self.db.execute("INSERT INTO text_files (path, sha256, encoding, parsed_json, first_seen) "
+                                    "VALUES (?,?,?,?,?)", (str(tp), sha, enc, _jdump(parsed), _now()))
             except OSError as exc:
                 self.db.audit("text_read_error", {"path": str(tp), "error": str(exc)})
         for ap, m in matches.items():
@@ -302,11 +340,10 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
             if m["text"] is not None:
                 r = self.db.one("SELECT id FROM text_files WHERE path=?", (str(m["text"]),))
                 tid = r["id"] if r else None
-            meta_row = self.db.one("SELECT metadata_json FROM tracks WHERE id=?", (trow["id"],))
-            meta = json.loads(meta_row["metadata_json"] or "{}")
-            meta["text_match_alternatives"] = m["alternatives"]
-            self.db.execute("UPDATE tracks SET text_id=?, text_match_confidence=?, text_match_status=?, metadata_json=? "
-                            "WHERE id=?", (tid, m["confidence"], m["status"], _jdump(meta), trow["id"]))
+            self._mutate_meta("tracks", trow["id"],
+                              lambda meta, alt=m["alternatives"]: meta.__setitem__("text_match_alternatives", alt))
+            self.db.execute("UPDATE tracks SET text_id=?, text_match_confidence=?, text_match_status=? WHERE id=?",
+                            (tid, m["confidence"], m["status"], trow["id"]))
 
     def _assign_duplicate_groups(self) -> None:
         rows = self.db.query("SELECT t.id, s.sha256, s.path FROM tracks t JOIN sources s ON s.id=t.source_id")
@@ -353,8 +390,9 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         for r in self.db.query(sql, params):
             d = dict(r)
             d["metadata"] = json.loads(d.pop("metadata_json") or "{}")
-            d["has_analysis"] = bool(self.db.one("SELECT 1 FROM analyses WHERE track_id=? AND kind='source' "
-                                                 "AND source_sha=?", (r["id"], r["sha256"])))
+            d["has_analysis"] = bool(self.db.one(
+                "SELECT 1 FROM analyses WHERE track_id=? AND kind='source' AND source_sha=? AND analysis_version=?",
+                (r["id"], r["sha256"], ANALYSIS_VERSION)))
             v = self.db.one("SELECT version_no, mode, status FROM versions WHERE track_id=? ORDER BY version_no DESC "
                             "LIMIT 1", (r["id"],))
             d["latest_version"] = dict(v) if v else None
@@ -394,6 +432,9 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         st = p.stat()
         if st.st_size != t["size"]:
             raise EngineError("source changed on disk since scan (size); rescan before processing")
+        # Same size does not mean same content. Hashing costs far less than the decode that follows.
+        if sha256_file(p) != t["sha256"]:
+            raise EngineError("source changed on disk since scan (content); rescan before processing")
 
     def _check_disk(self) -> None:
         if free_disk_bytes(self.root) < MIN_FREE_BYTES:
@@ -597,16 +638,30 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
             raise EngineError(f"version status {v['status']} cannot be approved")
         if v["output_path"] and sha256_file(v["output_path"]) != v["output_sha256"]:
             raise EngineError("rendered file changed since render; refusing approval")
-        self.db.execute("INSERT INTO approvals (version_id, decision, actor, note, created_at) VALUES (?,?,?,?,?)",
-                        (v["id"], decision, actor, note, _now()))
-        if decision in ("APPROVED", "REJECTED"):
-            self.db.execute("UPDATE versions SET status=? WHERE id=?", (decision, v["id"]))
-        self.db.audit("approval", {"track_id": track_id, "version": version_no, "decision": decision, "actor": actor})
+        superseded: list[int] = []
+        with self.db.transaction():
+            self.db.execute("INSERT INTO approvals (version_id, decision, actor, note, created_at) VALUES (?,?,?,?,?)",
+                            (v["id"], decision, actor, note, _now()))
+            if decision == "APPROVED":
+                # One approved version per track: the user's latest approval is the one that gets released.
+                superseded = [r["version_no"] for r in self.db.query(
+                    "SELECT version_no FROM versions WHERE track_id=? AND status='APPROVED' AND id<>?",
+                    (int(track_id), v["id"]))]
+                self.db.execute("UPDATE versions SET status='RENDERED' WHERE track_id=? AND status='APPROVED' AND id<>?",
+                                (int(track_id), v["id"]))
+            if decision in ("APPROVED", "REJECTED"):
+                self.db.execute("UPDATE versions SET status=? WHERE id=?", (decision, v["id"]))
+        self.db.audit("approval", {"track_id": track_id, "version": version_no, "decision": decision, "actor": actor,
+                                   "superseded_versions": superseded})
         return self.version(track_id, version_no)
 
     def approved_version(self, track_id: int) -> dict | None:
-        r = self.db.one("SELECT version_no FROM versions WHERE track_id=? AND status='APPROVED' "
-                        "ORDER BY version_no DESC LIMIT 1", (track_id,))
+        # Latest approval decision wins (not the highest version number); also correct for older projects
+        # that still hold several APPROVED versions of one track.
+        r = self.db.one(
+            "SELECT v.version_no FROM versions v WHERE v.track_id=? AND v.status='APPROVED' ORDER BY "
+            "(SELECT MAX(a.id) FROM approvals a WHERE a.version_id=v.id AND a.decision='APPROVED') DESC, "
+            "v.version_no DESC LIMIT 1", (track_id,))
         return self.version(track_id, r["version_no"]) if r else None
 
     # ------------------------------------------------------------------ jobs
@@ -657,9 +712,24 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         ``stop_after`` processes at most N items then returns (used to test interruption/resume).
         """
         job_id = int(job_id)
+        with self._jobs_lock:
+            if job_id in self._running_jobs:  # already running here: a second runner would duplicate renders
+                return self.job_status(job_id)
+            self._running_jobs.add(job_id)
+        try:
+            return self._run_job_impl(job_id, workers=workers, retry_failed=retry_failed, progress=progress,
+                                      stop_after=stop_after)
+        finally:
+            with self._jobs_lock:
+                self._running_jobs.discard(job_id)
+
+    def _run_job_impl(self, job_id: int, *, workers: int | None, retry_failed: bool,
+                      progress: Callable[[dict], None] | None, stop_after: int | None) -> dict:
         ev = self._cancel_flags.setdefault(job_id, threading.Event())
         ev.clear()
         j = self.db.one("SELECT * FROM jobs WHERE id=?", (job_id,))
+        if not j:
+            raise EngineError(f"job not found: {job_id}")
         params = json.loads(j["params_json"])
         statuses = ("PENDING", "RUNNING", "FAILED") if retry_failed else ("PENDING", "RUNNING")
         items = self.db.query(f"SELECT * FROM job_items WHERE job_id=? AND status IN ({','.join('?' * len(statuses))}) "
@@ -673,8 +743,13 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         def work(item):
             if ev.is_set():
                 raise Cancelled()
-            self.db.execute("UPDATE job_items SET status='RUNNING', attempts=attempts+1, updated_at=? WHERE id=?",
-                            (_now(), item["id"]))
+            # Claim the item exactly as it was listed; if another runner (second window, MCP process) took it
+            # in the meantime the row no longer matches and it is skipped instead of being processed twice.
+            claimed = self.db.execute(
+                "UPDATE job_items SET status='RUNNING', attempts=attempts+1, updated_at=? WHERE id=? AND status=? "
+                "AND attempts=?", (_now(), item["id"], item["status"], item["attempts"])).rowcount
+            if claimed != 1:
+                return
             try:
                 res = self._run_stage(item["stage"], item["track_id"], params)
                 self.db.execute("UPDATE job_items SET status='DONE', error=NULL, result_json=?, updated_at=? WHERE id=?",

@@ -123,13 +123,20 @@ def propose(meas: dict, *, mode: str = "SAFE_MASTER", preset: str | None = None,
             note = f"above preset window -> lower to {hi} (reduces limiting need)"
         else:
             note = f"inside preset window [{lo}, {hi}] -> unchanged"
-    if il is not None and tp is not None and gain > 0:
+    if il is not None and tp is not None:
         needed_gr = (tp + gain) - ceiling_dbtp
         if needed_gr > max_gr:
-            capped = max(0.0, ceiling_dbtp + max_gr - tp)
-            note += (f"; capped from +{gain:.2f} to +{capped:.2f} dB so peak reduction stays <= {max_gr} dB "
-                     "(protects transients)")
-            gain = capped
+            if loudness_policy == "preserve":
+                # The user asked for no level change: keep it, but say plainly what the limiter will do.
+                note += (f"; WARNING: source peaks need about {needed_gr:.1f} dB of peak reduction, above the "
+                         f"preset bound of {max_gr} dB - consider another loudness policy")
+            else:
+                # The bound also applies to sources that are already hot (true peak above the ceiling): the
+                # level is lowered instead of asking the limiter for more than the preset allows.
+                capped = ceiling_dbtp + max_gr - tp
+                note += (f"; changed from {gain:+.2f} to {capped:+.2f} dB so peak reduction stays <= {max_gr} dB "
+                         "(protects transients)")
+                gain = capped
     gain = round(gain, 2)
     if abs(gain) >= 0.05:
         chain["gain"] = {"enabled": True, "gain_db": gain}

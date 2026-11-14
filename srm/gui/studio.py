@@ -376,6 +376,9 @@ class StudioWindow(MainWindow):
     def analyze_selected_album(self):
         if not self.engine or self.selected_album() is None:
             return
+        if self._busy or self._album_job_active or self._job_running:
+            self.status.showMessage('Дождитесь завершения текущей обработки.')
+            return
         ids = [t['id'] for t in self.engine.list_tracks(self.selected_album())]
         if ids:
             self._run_job(self.engine.create_job('analyze', ids, ['analyze'], {}))
@@ -476,7 +479,23 @@ class StudioWindow(MainWindow):
         self.refresh_tracks()
         self.refresh_overview()
 
+    def _reset_listening(self):
+        """Forget the prepared audition: nothing prepared for one track/project may be signed off for another."""
+        self._preview_identity = None
+        self._selected_identity = None
+        if hasattr(self, 'accept_button'):
+            self.accept_button.setEnabled(False)
+            if self.player.player:
+                self.player.player.stop()
+            self.player.combo.clear()
+            self.player.clips = {}
+            self.wave.seg = None
+            self.wave.pos_s = 0
+            self.wave.update()
+
     def open_project(self, path):
+        # Track ids restart at 1 in every project, so the id alone cannot identify what was auditioned.
+        self._reset_listening()
         super().open_project(path)
         self.status.showMessage('Проект открыт · все изменения сохраняются отдельными версиями')
 
@@ -610,6 +629,7 @@ class StudioWindow(MainWindow):
                 self.on_track_selected()
                 self.player.set_clips(result[1])
                 self._preview_identity = (tid, result[0])
+                self._preview_engine = engine
                 self.accept_button.setEnabled(True)
                 self.refresh_versions(tid)
                 self.go(1)
@@ -623,6 +643,9 @@ class StudioWindow(MainWindow):
 
     def accept_listening(self):
         if not self._preview_identity or self.selected_track_ids() != [self._preview_identity[0]]:
+            return
+        if getattr(self, '_preview_engine', None) is not self.engine:  # prepared in another project
+            self._reset_listening()
             return
         tid, vn = self._preview_identity
         try:
@@ -650,7 +673,9 @@ class StudioWindow(MainWindow):
     def _show_job(self, st):
         super()._show_job(st)
         if hasattr(self, 'stats'):
-            self._album_job_active = st['status'] in ('RUNNING', 'PENDING')
+            # Follow the runner itself, not the status text: after "stop" the status is CANCEL_REQUESTED
+            # while the workers are still finishing their current tracks.
+            self._album_job_active = self._job_running
             self.stop_button.setVisible(self._album_job_active)
             self.job_fail.setVisible(bool(st['failures']))
             self.job_bar.show()
@@ -716,12 +741,18 @@ class StudioWindow(MainWindow):
             return
         self.save_album_description()
         self._artwork_album, self._artwork_engine = aid, self.engine
-        info = None
+        info, cover_problem = None, None
         if self.engine and aid is not None:
             try:
                 info = self.engine.album_artwork(aid)
             except Exception as exc:
-                self.cover_status.setText(str(exc))
+                # A damaged cover file must not hide the saved description (typing into an empty field
+                # would overwrite it): load the text without verifying the image and report the cover.
+                cover_problem = str(exc)
+                try:
+                    info = dict(self.engine.album_artwork(aid, verify=False), cover=None)
+                except Exception:
+                    info = None
         self.description_edit.blockSignals(True)
         self.description_edit.setPlainText(info['description'] if info else '')
         self.description_edit.blockSignals(False)
@@ -744,6 +775,8 @@ class StudioWindow(MainWindow):
             self.cover_image.setText('Обложка\nальбома')
             if info:
                 self.cover_status.setText('Описание сохраняется автоматически. Обложку можно загрузить или создать здесь.')
+        if cover_problem:
+            self.cover_status.setText(cover_problem)
         self.cover_open_button.setEnabled(bool(cover))
         self.cover_import_button.setEnabled(aid is not None and not self._busy)
         self.cover_generate_button.setEnabled(aid is not None and not self._busy)

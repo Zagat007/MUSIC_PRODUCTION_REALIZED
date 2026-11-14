@@ -45,7 +45,51 @@ def load_or_create_secret(project_root: Path) -> dict:
     fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
+    _restrict_to_current_user(p)
     return data
+
+
+def _restrict_to_current_user(path: Path) -> bool:
+    """Best effort on Windows, where the POSIX mode bits above are ignored: drop inherited permissions and
+    leave access to the current user only. Returns False (and changes nothing) when that is not possible."""
+    user = os.environ.get("USERNAME")
+    if os.name != "nt" or not user:
+        return False
+    import subprocess
+
+    try:
+        r = subprocess.run(["icacls", str(path), "/inheritance:r", "/grant:r", f"{user}:F"], capture_output=True,
+                           timeout=15, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=False)
+        return r.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+class RedactTokenFilter:
+    """Logging filter: the capability path /s/<token>/mcp must never reach the access log or console."""
+
+    def __init__(self, token: str):
+        self.token = token
+
+    def _clean(self, value):
+        return value.replace(self.token, "<redacted>") if isinstance(value, str) else value
+
+    def filter(self, record) -> bool:
+        record.msg = self._clean(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(self._clean(a) for a in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {k: self._clean(v) for k, v in record.args.items()}
+        return True
+
+
+def install_token_redaction(token: str) -> RedactTokenFilter:
+    import logging
+
+    flt = RedactTokenFilter(token)
+    for name in ("uvicorn", "uvicorn.access", "uvicorn.error", "mcp"):
+        logging.getLogger(name).addFilter(flt)
+    return flt
 
 
 class ArtifactSigner:
@@ -438,6 +482,8 @@ def serve(project_root: str | Path, host: str = "127.0.0.1", port: int = 8787) -
     print(f"[srm-mcp] endpoint: http://{host}:{port}/mcp  (Authorization: Bearer <token>)")
     print(f"[srm-mcp] token stored in {Path(eng.root) / SECRET_FILE} (keep private; delete the file to rotate)")
 
+    # Filters on the named loggers survive uvicorn's own logging setup (it replaces handlers, not filters).
+    install_token_redaction(secret["token"])
     uvicorn.run(wrapped, host=host, port=port, log_level="info", lifespan="on")
     return 0
 

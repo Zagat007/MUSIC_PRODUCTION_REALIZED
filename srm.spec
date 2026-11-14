@@ -7,7 +7,7 @@ hiddenimports += collect_submodules('srm')
 
 a = Analysis(
     ['scripts/srm_cli_entry.py'],
-    pathex=['.'],
+    pathex=['E:/PLAGIN_GPT_SUNO/suno-release-master'],
     binaries=[],
     datas=[],
     hiddenimports=hiddenimports,

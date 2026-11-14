@@ -133,7 +133,11 @@ class DB:
         class _Tx:
             def __enter__(self):
                 db._lock.acquire()
-                db.conn.execute("BEGIN IMMEDIATE")
+                try:
+                    db.conn.execute("BEGIN IMMEDIATE")
+                except BaseException:
+                    db._lock.release()  # __exit__ is not called when __enter__ fails: never leak the lock
+                    raise
                 return db
 
             def __exit__(self, et, ev, tb):

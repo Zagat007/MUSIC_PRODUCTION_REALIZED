@@ -1,6 +1,23 @@
 # Changelog
 
 ## Unreleased
+Audit fixes (independent review of f412904; regression tests in tests/integration/test_audit_regressions.py):
+- Listening: a prepared audition is dropped on project switch (track ids repeat across projects), so an
+  unheard version can no longer be signed off. The latest approval wins and supersedes the older one.
+- GUI: closing the window during work asks, cancels the job and waits for the worker instead of aborting
+  the process; one job at a time (no duplicate renders); renders left RENDERING by a crash become FAILED.
+- Jobs: items are claimed atomically, a version is rendered by one caller only.
+- Release validator never raises (corrupt MP3 / missing manifest or metadata -> FAIL), checks the manifest
+  against the hash recorded at export, matches tracks by file name and accounts for every file in the package.
+- Render: a damaged cover or MP3 check problem is reported as a warning, the master stays RENDERED.
+- Sources are re-hashed before processing (same-size edits are detected); `verify-sources` reports missing files.
+- Proposals: the preset's peak-reduction bound also applies to sources already above the ceiling.
+- Repair: edits for mono sources apply to both output channels.
+- Storage: metadata updates are atomic; a failed BEGIN no longer leaks the DB lock; "analyzed" requires the
+  current analysis version; 1/0 flags are stored as booleans.
+- Ingest: albums are identified by folder (same-named folders in different roots stay separate, renamed
+  albums keep their folder); edited prompt/lyrics files are re-read on rescan.
+- MCP: the capability token is redacted from server logs; the secret file is restricted to the current user.
 Album descriptions with autosave, square cover import, free local abstract generation with variant history,
 MP3 APIC embedding without audio re-encoding, cover-bytes validation and three artwork MCP tools.
 Album-first folder tree: real library root with album children, album-scoped counts/actions and synchronized

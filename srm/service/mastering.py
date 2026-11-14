@@ -72,7 +72,10 @@ class MasteringMixin:
         self._check_source(t)
         self._check_disk()
         cfg = v["config"]
-        self.db.execute("UPDATE versions SET status='RENDERING' WHERE id=?", (v["id"],))
+        # Atomic PROPOSED -> RENDERING: two callers (double click, GUI + MCP) cannot render the same version.
+        if self.db.execute("UPDATE versions SET status='RENDERING' WHERE id=? AND status='PROPOSED'",
+                           (v["id"],)).rowcount != 1:
+            raise EngineError(f"version {version_no} is already being rendered")
         try:
             pr = self.probe_result(t)
             plan = plan_conversion(pr, cfg["target_bits"], tuple(cfg["allowed_rates"]))
@@ -85,7 +88,12 @@ class MasteringMixin:
             if cfg.get("repair_plan"):
                 from srm.dsp.repair import apply_repair_plan
 
-                x, repair_log = apply_repair_plan(x, plan.target_rate, cfg["repair_plan"])
+                rp = cfg["repair_plan"]
+                if pr.channels == 1:
+                    # Mono sources are rendered as dual mono: an edit found on the single channel must be
+                    # applied to both output channels, otherwise the defect survives in the right channel.
+                    rp = {**rp, "edits": [{**ed, "channel": None} for ed in rp.get("edits", [])]}
+                x, repair_log = apply_repair_plan(x, plan.target_rate, rp)
             res = run_chain(x, plan.target_rate, cfg["chain"])
             out_dir = self._render_dir(t, v["version_no"])
             out = out_dir / f"{safe_name(t['title'] or 'track')}.wav"
@@ -96,9 +104,21 @@ class MasteringMixin:
                    "decoder_warnings": dec.warnings}
             report = self._finalize_render(t, {"id": v["id"], "version_no": v["version_no"]}, out, rec, cfg)
             if codec_preview:
-                cover = self.album_artwork(t['album_id'])['cover']
-                report["codec_preview"] = self.codec_preview(out, cfg["chain"]["limiter"]["ceiling_dbtp"],
-                                                            cover_path=cover['path'] if cover else None)
+                # The master is already written and recorded. The MP3 check and its cover are derived extras:
+                # a damaged cover file or an encoder problem is reported, it never fails the render.
+                cover, cover_warning = None, None
+                try:
+                    cover = self.album_artwork(t['album_id'])['cover']
+                except Exception as exc:
+                    cover_warning = str(exc)
+                try:
+                    cp = self.codec_preview(out, cfg["chain"]["limiter"]["ceiling_dbtp"],
+                                            cover_path=cover['path'] if cover else None)
+                except Exception as exc:
+                    cp = {"status": "FAILED", "error": f"{type(exc).__name__}: {exc}"}
+                if cover_warning:
+                    cp["cover_warning"] = cover_warning
+                report["codec_preview"] = cp
                 self.db.execute("UPDATE versions SET report_json=? WHERE id=?",
                                 (_jdump(_strip(report)), v["id"]))
             report["policy_check"] = self._policy_check(report, cfg)
@@ -139,10 +159,14 @@ class MasteringMixin:
                  "-c:a", "libmp3lame", "-b:a", bitrate, "-map_metadata", "-1", ffmpeg_input(mp3)])
         if p.returncode != 0:
             return {"status": "FAILED", "error": p.stderr.decode("utf-8", "replace")[-500:]}
+        cover_warning = None
         if cover_path:
             from srm.release.artwork import attach_cover
 
-            attach_cover(mp3, Path(cover_path))
+            try:
+                attach_cover(mp3, Path(cover_path))
+            except Exception as exc:  # the audio check below is still valid without the picture
+                cover_warning = str(exc)
         pr = probe(mp3)
         d = decode(mp3, sample_rate=pr.sample_rate, channels=pr.channels)
         tp = measure_peaks(d.audio, d.sample_rate)
@@ -150,9 +174,12 @@ class MasteringMixin:
         if tp["true_peak_dbtp"] > 0.0:
             advice = (f"MP3 decode peaks at {tp['true_peak_dbtp']:+.2f} dBTP (codec overs). Consider a "
                       f"{ceiling_dbtp - 1.0:.1f} dBTP ceiling for lossy-heavy distribution.")
-        return {"status": "OK", "path": str(mp3), "bitrate": bitrate, "true_peak_dbtp": tp["true_peak_dbtp"],
-                "sample_peak_dbfs": tp["sample_peak_dbfs"], "advice": advice,
-                "integrated_lufs": round(integrated_lufs(d.audio, d.sample_rate) or -99, 2)}
+        res = {"status": "OK", "path": str(mp3), "bitrate": bitrate, "true_peak_dbtp": tp["true_peak_dbtp"],
+               "sample_peak_dbfs": tp["sample_peak_dbfs"], "advice": advice,
+               "integrated_lufs": round(integrated_lufs(d.audio, d.sample_rate) or -99, 2)}
+        if cover_warning:
+            res["cover_warning"] = cover_warning
+        return res
 
     # ------------------------------------------------------------- A-B preview
     def create_preview(self, track_id: int, version_no: int | None = None, *, start_s: float | None = None,
