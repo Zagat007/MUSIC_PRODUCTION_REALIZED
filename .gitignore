@@ -9,3 +9,5 @@ dist-artwork/
 *.spec.bak
 _work/
 tools/ffmpeg/
+output/
+tmp/
