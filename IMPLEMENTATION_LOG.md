@@ -139,3 +139,34 @@ a package "approved".
 Tests: `pytest -q` → **57 passed** (exit 0). One test-expectation bug fixed (album order after reorder).
 Acceptance #4, #9, #10: PASS. Budget gate M4: PASS — zero new charges; network used only by the developer for
 documentation checks, never by the application.
+
+## M5 — Windows GUI, jobs, A-B listening, packaging
+
+Files: `srm/gui/app.py`, `tests/integration/test_m5_gui.py`, `scripts/{build_windows,srm_cli_entry,srm_gui_entry}`.
+GUI (PySide6, dark, Russian): Album Library (tree + track table, batch select, scan, analyze/convert jobs,
+pause/cancel/resume, per-item failure list, progress bar), Track Analysis (waveform with defect markers and
+click-to-seek, A-B player switching loudness-matched clips at the same position, full meter table, defect table,
+matched prompt/lyrics with lossy warning, manual style override, HTML report), Repair (plan, A-B/difference preview,
+approve/reject/accept-auto), Mastering (mode/policy/target/ceiling, explainable proposal, editable JSON chain with
+bounds, versions, render/approve/sign-off), Release Validation (cohesion, export with confirmation, validation,
+copy package to chosen folder), Settings (workers, health/capabilities).
+Tests: offscreen GUI end-to-end (scan → analyze job → meters → propose → render → preview → A-B swap → 6 tab
+screenshots) **PASS**. Visual check of real screenshots done; fixed analysis-tab layout (player box too tall).
+Windows build (PyInstaller 6.22.3, onedir): `dist/srm/srm.exe` (132 MB), `dist/srm-gui/srm-gui.exe` (274 MB),
+both exit 0. Frozen `srm.exe` ran scan → analyze → convert → propose → render → export (draft, FLAC+MP3) →
+validate (technical PASS) → verify-sources PASS. Frozen GUI launched and stayed up 8 s with no stderr.
+Not verified: Windows 10, installer/.msi, code signing.
+
+## M6 — MCP server + companion skill
+
+Files: `srm/mcp_server/server.py`, `plugin/skill/{SKILL.md,agents/openai.yaml,references/*}`,
+`plugin/manifest/README.md`, `docs/OPENAI_INTEGRATION.md`, `tests/integration/test_m6_mcp.py`.
+18 tools (spec list) with ToolAnnotations; bearer or capability-path auth (constant-time), rate limit, audit log,
+DNS-rebinding protection, 127.0.0.1 default bind, no path parameters, confirmation phrases for approval/export,
+10-minute HMAC-signed single-file download URLs. Tests with a real uvicorn server and the real MCP client:
+**4 passed** (401 on missing/wrong token and wrong capability path, 403 on tampered/unsigned artifact, FORBIDDEN on
+unauthorized root id, CONFIRMATION_REQUIRED without phrase, analysis/proposal/approval/render/export land in the
+same project DB, downloads return real RIFF bytes). Defect fixed: test client used v1 field names (`isError`) —
+SDK v2 uses `is_error`/`structured_content`.
+Live ChatGPT connection: **NOT VERIFIED** (needs user's account + public HTTPS URL). Skills article: NOT VERIFIED (403).
+Budget gate M5/M6: PASS — zero new charges; tunnels documented as optional free-tier choices under user control.

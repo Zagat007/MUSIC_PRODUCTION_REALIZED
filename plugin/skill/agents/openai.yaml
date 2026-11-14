@@ -1,0 +1,8 @@
+# Companion skill metadata. Format follows the layout named in the project brief; the official
+# ChatGPT Skills article was NOT reachable for verification on 2026-11-14 (HTTP 403) - check before upload.
+interface:
+  display_name: "Suno Release Master"
+  short_description: "Analyze, master, approve and export Suno songs with your local Suno Release Master app"
+policy:
+  requires_mcp_server: "suno-release-master"
+  network_access: "none (all processing is local to the user's PC)"

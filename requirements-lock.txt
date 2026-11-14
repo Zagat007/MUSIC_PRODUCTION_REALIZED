@@ -1,3 +1,4 @@
+altgraph==0.17.5
 annotated-doc==0.0.6
 annotated-types==0.8.0
 anyio==4.16.0
@@ -19,11 +20,14 @@ mcp-types==2.3.0
 numpy==2.4.6
 opentelemetry-api==1.45.2
 packaging==26.3
+pefile==2024.8.26
 pluggy==1.7.0
 pycparser==3.12
 pydantic==2.14.3
 pydantic_core==2.50.4
 Pygments==2.21.0
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.10
 PyJWT==2.15.1
 pyloudnorm==0.2.0
 PySide6==6.12.0
@@ -34,6 +38,7 @@ PySide6_WebEngine==6.12.0.140
 pytest==9.2.0
 python-multipart==0.0.33
 pywin32==312
+pywin32-ctypes==0.2.3
 referencing==0.37.0
 rpds-py==2026.9.1
 ruff==0.17.5
