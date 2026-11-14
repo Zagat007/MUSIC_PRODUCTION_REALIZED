@@ -33,6 +33,7 @@ from srm.core.tools import get_tools, tools_status
 from srm.ingest.decode import DecodeError, decode
 from srm.ingest.probe import ProbeResult, probe
 from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, read_text
+from srm.service.mastering import MasteringMixin
 
 AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", ".aiff", ".ogg", ".opus", ".alac"}
 TEXT_EXT = {".txt", ".md"}
@@ -72,7 +73,7 @@ def config_hash(cfg: dict) -> str:
     return hashlib.sha256(_jdump(cfg).encode("utf-8")).hexdigest()[:16]
 
 
-class Engine:
+class Engine(MasteringMixin):
     def __init__(self, project_dir: str | Path, *, create: bool = True):
         self.root = Path(project_dir).resolve()
         if not self.root.exists():
@@ -690,6 +691,20 @@ class Engine:
             r = self.convert_track(track_id, target_bits=int(params.get("target_bits", 24)),
                                    overs_policy=params.get("overs_policy", "trim"))
             return {"version_no": r["version_no"]}
+        if stage == "render":
+            # render the latest PROPOSED version, or propose SAFE_MASTER first (still not approved)
+            r = self.db.one("SELECT version_no FROM versions WHERE track_id=? AND status='PROPOSED' "
+                            "ORDER BY version_no DESC LIMIT 1", (track_id,))
+            if not r:
+                if params.get("approved_only"):
+                    raise EngineError("no PROPOSED version to render")
+                vno = self.suggest_mastering(track_id, mode=params.get("mode", "SAFE_MASTER"),
+                                             preset=params.get("preset"),
+                                             ceiling_dbtp=float(params.get("ceiling_dbtp", -1.0)))["version_no"]
+            else:
+                vno = r["version_no"]
+            rep = self.render_version(track_id, vno, codec_preview=params.get("codec_preview", True))
+            return {"version_no": vno, "policy": {k: v.get("status") for k, v in rep["policy_check"].items()}}
         extra = getattr(self, f"_stage_{stage}", None)
         if extra:
             return extra(track_id, params)

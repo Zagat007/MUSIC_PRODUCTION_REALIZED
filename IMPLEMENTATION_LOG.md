@@ -55,3 +55,31 @@ Acceptance items touched: #2 source hashes unchanged (PASS, test_sources_untouch
 Budget gate M1: PASS — zero new charges, no network.
 
 Next: M2 mastering chain.
+
+## M2 — Mastering chain, true-peak limiting, presets, A-B, codec preview
+
+Files: `srm/dsp/{chain,presets,proposal}.py`, `srm/service/mastering.py` (Engine mixin), tests
+`tests/unit/test_chain.py`, `tests/integration/test_m2_mastering.py`.
+
+Implemented: bounded chain (dc_hpf → eq → compressor → stereo → gain → limiter) with per-stage bypass and
+per-stage loudness/TP measurements; explainable proposals (problem/evidence/remedy/risk/settings); presets as
+suggested windows (no forced −14 LUFS; level is capped so limiting stays ≤ preset max GR); immutable
+PROPOSED→RENDERED→APPROVED versions with tamper check; real MP3 320k codec preview decoded and measured;
+loudness-matched A-B clips (source / master / encoded MP3, MP3 delay aligned); album cohesion report.
+
+Tests: `pytest -q` → **43 passed** (exit 0).
+
+Defects found and fixed (root causes):
+1. **Limiter leak at file start** (integration test: +2.7 dBTP output): causal box-average padded with gain 1.0
+   before sample 0 → first ~1.5 ms unlimited; iterations compensated with 23.7 dB GR. Fixed (pad with first
+   gain); GR now 4.2 dB, TP −1.10 dBTP. Regression test added.
+2. Untouched regions not bit-identical: cumulative-sum rounding (1e-10) and asymptotic release. Fixed by
+   averaging the gain deficit with sub-1e-12 snap and snapping release to unity below 1e-9 (≪ 1 LSB @24-bit).
+3. Stale analysis cache after a measurement fix gave wrong proposals → `ANALYSIS_VERSION` is the cache key and
+   must be bumped on any measurement change (now `analysis-1.1`).
+4. Performance: 64-tap/phase interpolator → 24 taps (identical readings, 2.2× faster); single pass for
+   per-channel + linked TP. Limiter keeps 0.1 dB internal margin for the ≤0.14 dB 4× under-read.
+
+Acceptance: #7 TP within ceiling on rendered bytes + real MP3 preview analysed (PASS); #8 bypass/identity,
+untouched-region and A-B path (PASS). Budget gate M2: PASS — zero new charges, offline.
+Not verified: subjective sound quality of any preset (requires listening).
