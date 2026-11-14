@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+Album descriptions with autosave, square cover import, free local abstract generation with variant history,
+MP3 APIC embedding without audio re-encoding, cover-bytes validation and three artwork MCP tools.
+Album-first folder tree: real library root with album children, album-scoped counts/actions and synchronized
+audition/export context. The main screen opens the first album instead of a mixed all-tracks view.
 Focused studio UI: three steps (library, audition, release), warm dark styling, plain-language A/B player,
 one-click conservative preview, explicit listening approval, draft export and advanced tools on demand.
 Worker callbacks are delivered on the GUI thread; album preparation reuses existing rendered/approved versions.

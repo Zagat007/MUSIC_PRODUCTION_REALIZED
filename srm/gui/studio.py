@@ -3,18 +3,23 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, Qt
+from PySide6.QtCore import QStandardPaths, Qt, QTimer
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
     QSplitter,
     QStackedWidget,
     QStyle,
+    QTreeWidgetItem,
+    QTreeWidgetItemIterator,
     QVBoxLayout,
     QWidget,
 )
@@ -111,6 +116,12 @@ class StudioWindow(MainWindow):
         self._selected_identity = None
         self._busy = False
         self._album_job_active = False
+        self._artwork_album = None
+        self._artwork_engine = None
+        self._description_dirty = False
+        self.description_timer = QTimer(self)
+        self.description_timer.setSingleShot(True)
+        self.description_timer.timeout.connect(self.save_album_description)
         self._build_studio()
         self.job_bar.hide()
         self.stop_button = button('Остановить', self.cancel_job)
@@ -182,19 +193,59 @@ class StudioWindow(MainWindow):
         lay = QVBoxLayout(page)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(20)
+        album_card = QFrame()
+        album_card.setObjectName('Card')
+        details = QHBoxLayout(album_card)
+        details.setContentsMargins(18, 16, 18, 16)
+        details.setSpacing(22)
+        self.cover_image = label('Обложка\nальбома', 'Muted')
+        self.cover_image.setAlignment(Qt.AlignCenter)
+        self.cover_image.setFixedSize(148, 148)
+        self.cover_image.setStyleSheet('background:#121718; border-radius:8px; border:1px solid #39433f;')
+        art_column = QVBoxLayout()
+        art_column.addWidget(self.cover_image)
+        self.cover_versions = QComboBox()
+        self.cover_versions.setFixedWidth(148)
+        self.cover_versions.setToolTip('Вернуться к предыдущей обложке')
+        self.cover_versions.activated.connect(lambda _: self.artwork_action('select'))
+        art_column.addWidget(self.cover_versions)
+        details.addLayout(art_column)
+        column = QVBoxLayout()
+        column.setSpacing(8)
+        self.description_edit = QPlainTextEdit()
+        self.description_edit.setPlaceholderText('О чём этот альбом? Опишите настроение, образы и историю — они зададут направление обложки.')
+        self.description_edit.setFixedHeight(70)
+        self.description_edit.textChanged.connect(self.description_changed)
+        column.addWidget(self.description_edit)
+        actions = QHBoxLayout()
+        self.cover_import_button = button('Загрузить обложку', lambda: self.artwork_action('import'))
+        self.cover_generate_button = button('Создать абстрактный вариант', lambda: self.artwork_action('generate'))
+        self.cover_open_button = button('Открыть', self.open_cover)
+        actions.addWidget(self.cover_import_button)
+        actions.addWidget(self.cover_generate_button)
+        actions.addWidget(self.cover_open_button)
+        actions.addStretch()
+        column.addLayout(actions)
+        self.cover_status = label('Описание сохраняется автоматически. Своя обложка или бесплатный локальный вариант.', 'Muted')
+        column.addWidget(self.cover_status)
         stats = QHBoxLayout()
         self.stats = {}
-        for key, title, detail in [('albums', 'Альбомы', 'В вашей библиотеке'),
-                                   ('tracks', 'Композиции', 'Оригинальные файлы'),
-                                   ('ready', 'Обработано', 'Версии для прослушивания')]:
-            box, number = card(title, '—', detail)
+        for key, title, _detail in [('albums', 'В библиотеке', 'Альбомов'),
+                                   ('tracks', 'В альбоме', 'Композиций'),
+                                   ('ready', 'Подготовлено', 'В выбранном альбоме')]:
+            number = label('—')
             self.stats[key] = number
-            stats.addWidget(box)
-        lay.addLayout(stats)
+            stats.addWidget(label(title + ':', 'Muted'))
+            stats.addWidget(number)
+            stats.addSpacing(12)
+        stats.addStretch()
+        column.addLayout(stats)
+        details.addLayout(column, 1)
+        lay.addWidget(album_card)
         row = QHBoxLayout()
         row.addWidget(label('Библиотека', 'SectionTitle'), 1)
         row.addWidget(button('Добавить музыку', self.pick_library, 'Primary'))
-        row.addWidget(button('Проверить треки', lambda: self.start_job('analyze', ['analyze'], {})))
+        row.addWidget(button('Проверить альбом', self.analyze_selected_album))
         lay.addLayout(row)
         self.library_hint = label('Добавьте папку с музыкой. Альбомы появятся здесь автоматически.', 'Muted')
         lay.addWidget(self.library_hint)
@@ -309,11 +360,25 @@ class StudioWindow(MainWindow):
 
     def select_release_album(self, _index):
         aid = self.album_combo.currentData()
-        for i in range(self.album_tree.topLevelItemCount()):
-            item = self.album_tree.topLevelItem(i)
+        for item in self.album_items():
             if item.data(0, Qt.UserRole) == aid:
                 self.album_tree.setCurrentItem(item)
                 break
+
+    def album_items(self):
+        it = QTreeWidgetItemIterator(self.album_tree)
+        while it.value():
+            item = it.value()
+            if item.data(0, Qt.UserRole) is not None:
+                yield item
+            it += 1
+
+    def analyze_selected_album(self):
+        if not self.engine or self.selected_album() is None:
+            return
+        ids = [t['id'] for t in self.engine.list_tracks(self.selected_album())]
+        if ids:
+            self._run_job(self.engine.create_job('analyze', ids, ['analyze'], {}))
 
     def go(self, index):
         self.pages.setCurrentIndex(index)
@@ -347,7 +412,68 @@ class StudioWindow(MainWindow):
         super().pick_project()
 
     def refresh_library(self):
-        super().refresh_library()
+        if not self.engine:
+            return
+        previous = self.selected_album()
+        albums = self.engine.list_albums()
+        roots = self.engine.db.query('SELECT path FROM library_roots ORDER BY id')
+        self.album_tree.blockSignals(True)
+        self.album_combo.blockSignals(True)
+        self.album_tree.clear()
+        self.album_combo.clear()
+        folders = {}
+
+        def folder(parent, name, path):
+            node = QTreeWidgetItem([name, ''])
+            node.setFlags(node.flags() & ~Qt.ItemIsSelectable)
+            node.setToolTip(0, str(path))
+            if parent:
+                parent.addChild(node)
+            else:
+                self.album_tree.addTopLevelItem(node)
+            node.setExpanded(True)
+            return node
+
+        root_nodes = []
+        for r in roots:
+            path = Path(r['path']).resolve()
+            root_nodes.append((path, folder(None, path.name or str(path), path)))
+        target = None
+        for album in albums:
+            hint = Path(album['folder_hint']).resolve() if album['folder_hint'] else None
+            parent = None
+            library_path = ''
+            parts = ()
+            if hint:
+                for base, node in root_nodes:
+                    if hint.is_relative_to(base):
+                        parent, library_path, parts = node, str(base), hint.relative_to(base).parts
+                        break
+            if parent is None:
+                if 'virtual' not in folders:
+                    folders['virtual'] = folder(None, 'Другие альбомы', '')
+                parent = folders['virtual']
+            for depth, name in enumerate(parts[:-1]):
+                key = (library_path, parts[:depth + 1])
+                if key not in folders:
+                    folders[key] = folder(parent, name, Path(library_path).joinpath(*parts[:depth + 1]))
+                parent = folders[key]
+            name = parts[-1] if parts else album['name']
+            item = QTreeWidgetItem([name, str(album['tracks'])])
+            item.setData(0, Qt.UserRole, album['id'])
+            item.setData(0, Qt.UserRole + 1, library_path)
+            item.setToolTip(0, str(hint) if hint else name)
+            parent.addChild(item)
+            parent.setExpanded(True)
+            self.album_combo.addItem(name, album['id'])
+            if target is None or album['id'] == previous:
+                target = item
+        if target:
+            self.album_tree.setCurrentItem(target)
+            self.album_combo.setCurrentIndex(self.album_combo.findData(target.data(0, Qt.UserRole)))
+        self.album_tree.blockSignals(False)
+        self.album_combo.blockSignals(False)
+        self.refresh_tracks()
         self.refresh_overview()
 
     def open_project(self, path):
@@ -355,7 +481,13 @@ class StudioWindow(MainWindow):
         self.status.showMessage('Проект открыт · все изменения сохраняются отдельными версиями')
 
     def refresh_tracks(self):
-        super().refresh_tracks()
+        previous = self.selected_track_ids()
+        self.track_table.blockSignals(True)
+        if self.selected_album() is None:
+            self.track_table.setRowCount(0)
+            self._library_rows = []
+        else:
+            super().refresh_tracks()
         if not hasattr(self, 'stats'):
             return
         for r in range(self.track_table.rowCount()):
@@ -373,6 +505,12 @@ class StudioWindow(MainWindow):
             i = self.album_combo.findData(aid)
             if i >= 0:
                 self.album_combo.setCurrentIndex(i)
+        if self._library_rows:
+            row = next((i for i, track in enumerate(self._library_rows) if track['id'] in previous), 0)
+            self.track_table.selectRow(row)
+        self.track_table.blockSignals(False)
+        self.load_album_artwork()
+        self.on_track_selected()
         self.refresh_overview()
 
     @staticmethod
@@ -384,19 +522,23 @@ class StudioWindow(MainWindow):
     def refresh_overview(self, *_):
         if not hasattr(self, 'release_summary'):
             return
-        tracks = self.engine.list_tracks() if self.engine else []
         albums = self.engine.list_albums() if self.engine else []
-        rendered = sum(bool(t['latest_version'] and t['latest_version']['status'] in ('RENDERED', 'APPROVED')) for t in tracks)
-        for k, v in [('albums', len(albums)), ('tracks', len(tracks)), ('ready', rendered)]:
-            self.stats[k].setText(str(v))
-        self.library_hint.setVisible(not tracks)
-        if self.engine:
-            self.project_caption.setText(self.engine.root.name.upper())
         aid = self.album_combo.currentData()
         selected = self.engine.list_tracks(aid) if self.engine and aid is not None else []
         ready = sum(bool(t['latest_version'] and t['latest_version']['status'] in ('RENDERED', 'APPROVED')) for t in selected)
+        for k, v in [('albums', len(albums)), ('tracks', len(selected)), ('ready', ready)]:
+            self.stats[k].setText(str(v))
+        self.library_hint.setVisible(not albums)
+        current = self.album_tree.currentItem()
+        if current and current.data(0, Qt.UserRole) is not None:
+            self.project_caption.setText(current.data(0, Qt.UserRole + 1) or 'МОЯ КОЛЛЕКЦИЯ')
+            if self.pages.currentIndex() == 0:
+                self.page_title.setText(current.text(0))
+                self.page_subtitle.setText('Выбранный альбом · проверка, прослушивание и подготовка релиза')
         self.release_summary.setText(f'{len(selected)} композиций · {ready} подготовлено' if selected else 'Добавьте альбом в библиотеку.')
         available = not self._busy and not self._album_job_active
+        self.cover_import_button.setEnabled(available and aid is not None)
+        self.cover_generate_button.setEnabled(available and aid is not None)
         self.preview_button.setEnabled(available and len(self.selected_track_ids()) == 1)
         self.album_prepare_button.setEnabled(bool(selected) and available)
         self.draft_button.setEnabled(bool(selected) and ready == len(selected) and available)
@@ -439,6 +581,10 @@ class StudioWindow(MainWindow):
         self.preview_button.setEnabled(not busy and len(self.selected_track_ids()) == 1)
         self.open_button.setEnabled(not busy)
         self.album_combo.setEnabled(not busy)
+        self.description_edit.setEnabled(not busy)
+        self.cover_versions.setEnabled(not busy)
+        self.cover_import_button.setEnabled(not busy and self.selected_album() is not None)
+        self.cover_generate_button.setEnabled(not busy and self.selected_album() is not None)
         self.preview_button.setText('Готовим фрагмент…' if busy else 'Подготовить прослушивание')
         self.refresh_overview()
 
@@ -546,3 +692,106 @@ class StudioWindow(MainWindow):
             from PySide6.QtGui import QDesktopServices
 
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.last_export))
+
+    def description_changed(self):
+        if self._artwork_album is not None:
+            self._description_dirty = True
+            self.cover_status.setText('Сохраняем описание…')
+            self.description_timer.start(650)
+
+    def save_album_description(self):
+        self.description_timer.stop()
+        if not self._description_dirty or self._artwork_engine is None:
+            return
+        try:
+            self._artwork_engine.set_album_description(self._artwork_album, self.description_edit.toPlainText())
+            self._description_dirty = False
+            self.cover_status.setText('Описание сохранено. Новый вариант обложки будет создан по этому описанию.')
+        except Exception as exc:
+            self.cover_status.setText('Не удалось сохранить описание: ' + str(exc))
+
+    def load_album_artwork(self, force=False):
+        aid = self.selected_album()
+        if self.engine is self._artwork_engine and aid == self._artwork_album and not force:
+            return
+        self.save_album_description()
+        self._artwork_album, self._artwork_engine = aid, self.engine
+        info = None
+        if self.engine and aid is not None:
+            try:
+                info = self.engine.album_artwork(aid)
+            except Exception as exc:
+                self.cover_status.setText(str(exc))
+        self.description_edit.blockSignals(True)
+        self.description_edit.setPlainText(info['description'] if info else '')
+        self.description_edit.blockSignals(False)
+        self._description_dirty = False
+        self.cover_image.clear()
+        cover = info['cover'] if info else None
+        self.cover_versions.blockSignals(True)
+        self.cover_versions.clear()
+        for i, variant in enumerate(info['history'] if info else []):
+            self.cover_versions.addItem(f'Вариант {i+1}', variant['id'])
+        if cover:
+            self.cover_versions.setCurrentIndex(self.cover_versions.findData(cover['id']))
+        self.cover_versions.blockSignals(False)
+        self.cover_versions.setVisible(self.cover_versions.count() > 0)
+        if cover:
+            pixmap = QPixmap(cover['path'])
+            self.cover_image.setPixmap(pixmap.scaled(146, 146, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.cover_status.setText('Обложка альбома · 3000 × 3000 · встраивается в MP3-превью')
+        else:
+            self.cover_image.setText('Обложка\nальбома')
+            if info:
+                self.cover_status.setText('Описание сохраняется автоматически. Обложку можно загрузить или создать здесь.')
+        self.cover_open_button.setEnabled(bool(cover))
+        self.cover_import_button.setEnabled(aid is not None and not self._busy)
+        self.cover_generate_button.setEnabled(aid is not None and not self._busy)
+
+    def artwork_action(self, action):
+        if self._busy or self._album_job_active or self.selected_album() is None:
+            return
+        self.save_album_description()
+        if self._description_dirty:
+            return
+        aid, engine = self.selected_album(), self.engine
+        args = [aid]
+        fn = engine.generate_album_cover
+        if action == 'import':
+            from PySide6.QtWidgets import QFileDialog
+
+            path, _ = QFileDialog.getOpenFileName(self, 'Выберите обложку альбома', '', 'Изображения (*.jpg *.jpeg *.png *.webp)')
+            if not path:
+                return
+            fn, args = engine.import_album_cover, [aid, path]
+        elif action == 'select':
+            fn, args = engine.select_album_cover, [aid, self.cover_versions.currentData()]
+        self._busy_state(True)
+        self.cover_status.setText('Готовим обложку и обновляем MP3-превью…')
+
+        def done(result):
+            self._busy_state(False)
+            if self.engine is engine and self.selected_album() == aid:
+                self.load_album_artwork(force=True)
+                update = result.get('previews', {})
+                self.cover_status.setText(f"Обложка сохранена · обновлено MP3-превью: {update.get('updated', 0)}" +
+                                         (f" · ошибок: {len(update['errors'])}" if update.get('errors') else ''))
+
+        def fail(message):
+            self._busy_state(False)
+            self.cover_status.setText('Не удалось подготовить обложку: ' + message.splitlines()[0])
+
+        run_bg(self, fn, *args, on_done=done, on_fail=fail)
+
+    def open_cover(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        if self.engine and self.selected_album() is not None:
+            cover = self.engine.album_artwork(self.selected_album())['cover']
+            if cover:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(cover['path']))
+
+    def closeEvent(self, event):
+        self.save_album_description()
+        super().closeEvent(event)

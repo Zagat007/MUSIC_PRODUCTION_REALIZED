@@ -58,6 +58,50 @@ def test_worker_closure_returns_to_gui_thread():
     owner.close()
 
 
+def test_folder_tree_scopes_work_to_selected_album(tmp_path, monkeypatch):
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    from srm.gui.studio import StudioWindow
+    from srm.service.engine import Engine
+
+    lib = tmp_path / 'НА РЕЛИЗ'
+    for album in ('01 — FIRST', '02 — SECOND'):
+        directory = lib / album
+        directory.mkdir(parents=True)
+        for i in (1, 2):
+            sf.write(directory / f'{i:02d} — {album} {i}.wav', np.zeros((4800, 2)), 48000)
+    e = Engine(tmp_path / 'project')
+    e.add_library_root(lib)
+    e.scan()
+    app = QApplication.instance() or QApplication([])
+    w = StudioWindow(str(e.root))
+    w.show()
+    app.processEvents()
+    root = w.album_tree.topLevelItem(0)
+    assert root.text(0) == 'НА РЕЛИЗ' and root.childCount() == 2
+    assert not root.flags() & Qt.ItemIsSelectable
+    assert w.selected_album() == root.child(0).data(0, Qt.UserRole)
+    w.album_tree.setCurrentItem(root.child(1))
+    app.processEvents()
+    second = root.child(1).data(0, Qt.UserRole)
+    assert w.selected_album() == w.album_combo.currentData() == second
+    assert w.track_table.rowCount() == 2 and w.stats['tracks'].text() == '2'
+    assert all('SECOND' in w.track_table.item(i, 2).text() for i in range(2))
+    assert w.page_title.text() == '02 — SECOND'
+    submitted = []
+    monkeypatch.setattr(w, '_run_job', submitted.append)
+    w.analyze_selected_album()
+    ids = {r['track_id'] for r in e.db.query('SELECT track_id FROM job_items WHERE job_id=?', (submitted[0],))}
+    assert ids == {t['id'] for t in e.list_tracks(second)}
+    w.album_combo.setCurrentIndex(0)
+    w.select_release_album(0)
+    assert w.selected_album() == root.child(0).data(0, Qt.UserRole)
+    w.refresh_library()
+    assert w.album_tree.currentItem().text(0) == '01 — FIRST'
+    w.close()
+
+
 def test_studio_listen_accept_and_export(tmp_path, monkeypatch):
     from PySide6.QtWidgets import QApplication, QMessageBox
 

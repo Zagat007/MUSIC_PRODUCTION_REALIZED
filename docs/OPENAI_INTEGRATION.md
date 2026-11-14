@@ -48,3 +48,5 @@ reports into ChatGPT for discussion. The skill in `plugin/skill/` still document
 analyze_track, analyze_album, get_analysis_report, suggest_mastering, create_preview,
 approve_processing_version(confirmation), start_batch_render, get_job_status, cancel_job,
 validate_release, export_album(confirmation), get_release_manifest, get_artifact_download`.
+Artwork adds `get_album_artwork`, `set_album_description`, `generate_album_cover` (21 tools total).
+The cover generator is local and procedural; no paid inference API is used.

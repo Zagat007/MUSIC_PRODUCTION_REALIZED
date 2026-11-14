@@ -1,0 +1,16 @@
+{
+  "checks": {
+    "srm.gui.app_packaged_code": "PASS",
+    "srm.gui.studio_packaged_code": "PASS",
+    "QtCore_load": "PASS",
+    "GUI_startup": "PASS"
+  },
+  "gui_executable": "E:\\PLAGIN_GPT_SUNO\\suno-release-master\\dist-albums\\srm-gui\\srm-gui.exe",
+  "gui_sha256": "75b3000735436acc19bd418947fda6e073a970f2fd2c02e3623626955779a839",
+  "source_commit_base": "f52cf8e0a389503b5c6fdff88e3a1e3156fc847c",
+  "real_library_root": "F:\\НА РЕЛИЗ",
+  "real_library_album_count": 38,
+  "initial_album_track_count": 13,
+  "original_running_instance_closed": false,
+  "missing_runtime_files_restored": 0
+}

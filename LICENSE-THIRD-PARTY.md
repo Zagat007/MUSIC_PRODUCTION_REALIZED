@@ -10,6 +10,7 @@ All components are free of charge. No paid service, API, model or account is req
 | Python | 3.11 | PSF | |
 | NumPy | 2.4.6 | BSD-3-Clause (+0BSD/MIT/Zlib/CC0 parts) | |
 | SciPy | 1.17.1 | BSD-3-Clause | |
+| Pillow | 12.3.0 | MIT-CMU | Local image normalization and procedural artwork. Retain the wheel's license notices, including bundled image-codec notices. No paid model or API. |
 | soundfile (python) | 0.14.0 | BSD-3-Clause | |
 | libsndfile (bundled in soundfile wheel) | 1.2.2 | **LGPL-2.1+** | Shipped as a separate DLL (dynamic linking) → LGPL satisfied by keeping it replaceable and providing this notice + source link (https://github.com/libsndfile/libsndfile). |
 | pyloudnorm | 0.2.0 | MIT | Used only in tests as an independent cross-check. |

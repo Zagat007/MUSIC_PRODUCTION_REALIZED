@@ -36,6 +36,7 @@ from srm.ingest.decode import DecodeError, decode
 from srm.ingest.probe import ProbeResult, probe
 from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, read_text
 from srm.service.albums import AlbumMixin
+from srm.service.artwork import ArtworkMixin
 from srm.service.mastering import MasteringMixin
 from srm.service.repairs import RepairMixin
 
@@ -79,7 +80,7 @@ def config_hash(cfg: dict) -> str:
     return hashlib.sha256(_jdump(cfg).encode("utf-8")).hexdigest()[:16]
 
 
-class Engine(MasteringMixin, RepairMixin, AlbumMixin):
+class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
     def __init__(self, project_dir: str | Path, *, create: bool = True):
         self.root = Path(project_dir).resolve()
         if not self.root.exists():

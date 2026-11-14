@@ -307,3 +307,45 @@ current source and GUI startup without exceptions. Build metadata refreshed in `
 Local launcher `E:\PLAGIN_GPT_SUNO\Suno Release Master.lnk` points to the new GUI and existing real-library project.
 
 Live ChatGPT connectivity and subjective audio quality remain NOT VERIFIED. Budget gate: PASS (zero charges).
+
+## Album folder tree, descriptions and artwork — 2026-11-15
+
+Implemented the requested album workflow: the real authorized library root appears as a non-selectable
+tree parent with album children (including nested folders); no mixed all-tracks default. The first album
+opens automatically. Selection drives the track table, current-album heading, counts, analysis job, audition
+and release album. Selection survives tree refresh. Real cached library check: НА РЕЛИЗ / 38 children;
+first album shows only its 13 tracks. New targeted tree test verifies job membership and bidirectional selection.
+
+Album card now has an autosaved description (initial fallback: КОНЦЕПЦИЯ.txt, read-only), image import,
+free local procedural abstract generation guided by Russian/English description keywords, and a variant
+selector. Images normalize to separate 3000x3000 RGB JPEG assets; immutable versions retain the description,
+seed, method and image hash. This is not neural illustration generation and uses no API/model service.
+Pillow 12.3.0 (MIT-CMU) added to dependencies/lockfile/license manifest.
+
+Selected art is embedded as ID3 APIC front cover into every derived codec MP3 preview and newly exported
+MP3_PREVIEW track. Audio is stream-copied (no re-encode); a temporary tagged MP3 is verified before atomic
+replacement. Old release packages and all source audio remain intact. Packages include ARTWORK/cover.jpg and
+album description. Independent validation extracts the actual attached image and compares its SHA-256;
+missing previews / missing or wrong selected art fail. Corrupted selected image assets are rejected but can
+be replaced through a new import.
+
+Engine/CLI/MCP share the same implementation (`srm/release/artwork.py`, `srm/service/artwork.py`). Three new
+MCP tools: get_album_artwork, set_album_description, generate_album_cover (21 total). Cover downloads are
+signed like other artifacts; MCP accepts no arbitrary image paths or remote fetch URLs.
+
+Validation: 12 focused artwork/GUI/MCP tests PASS; full suite **81 passed in 347.86 s, exit 0**
+(`tests/qa/artwork_regression_tests.txt`), Ruff PASS. Tests cover description persistence, concept fallback,
+variant history/selection, image import preserving the input image, all-preview embedding, exact compressed
+audio-stream hashes before/after tagging, old-package preservation, and rejection of stripped APIC.
+
+Windows runtime: the user had the old GUI open, so an in-place build could not replace its locked EXE.
+No user process was stopped. A separate tree bundle was assembled; inspection found zero missing files
+in the original runtime. The build script now preflights running targets and supports a verified repository-
+local -DistPath. Final complete CLI/GUI bundle: `dist-artwork/`. **18 frozen-program checks PASS**, including
+exact GUI code equality, 21 tools, real JPEG generation/download, MP3 APIC presence and GUI startup.
+The workspace shortcut now targets this bundle with the existing real-library project.
+
+Visual review: album-art card at 1440x920 and 1200x800 using generated test artwork; real album tree also
+rechecked without changing the real library. No real album artwork was generated/assigned automatically.
+Live ChatGPT connectivity, subjective audio quality and aesthetic cover approval: NOT VERIFIED.
+Budget gate: PASS (zero additional charges; CPU/local generator).

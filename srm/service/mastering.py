@@ -96,7 +96,9 @@ class MasteringMixin:
                    "decoder_warnings": dec.warnings}
             report = self._finalize_render(t, {"id": v["id"], "version_no": v["version_no"]}, out, rec, cfg)
             if codec_preview:
-                report["codec_preview"] = self.codec_preview(out, cfg["chain"]["limiter"]["ceiling_dbtp"])
+                cover = self.album_artwork(t['album_id'])['cover']
+                report["codec_preview"] = self.codec_preview(out, cfg["chain"]["limiter"]["ceiling_dbtp"],
+                                                            cover_path=cover['path'] if cover else None)
                 self.db.execute("UPDATE versions SET report_json=? WHERE id=?",
                                 (_jdump(_strip(report)), v["id"]))
             report["policy_check"] = self._policy_check(report, cfg)
@@ -124,7 +126,8 @@ class MasteringMixin:
         return checks
 
     # ------------------------------------------------------------- codec preview
-    def codec_preview(self, wav_path: str | Path, ceiling_dbtp: float, bitrate: str = "320k") -> dict:
+    def codec_preview(self, wav_path: str | Path, ceiling_dbtp: float, bitrate: str = "320k",
+                      cover_path: str | Path | None = None) -> dict:
         t = get_tools()
         if not t.has_libmp3lame:
             return {"status": "UNAVAILABLE", "reason": "FFmpeg build lacks libmp3lame"}
@@ -136,6 +139,10 @@ class MasteringMixin:
                  "-c:a", "libmp3lame", "-b:a", bitrate, "-map_metadata", "-1", ffmpeg_input(mp3)])
         if p.returncode != 0:
             return {"status": "FAILED", "error": p.stderr.decode("utf-8", "replace")[-500:]}
+        if cover_path:
+            from srm.release.artwork import attach_cover
+
+            attach_cover(mp3, Path(cover_path))
         pr = probe(mp3)
         d = decode(mp3, sample_rate=pr.sample_rate, channels=pr.channels)
         tp = measure_peaks(d.audio, d.sample_rate)

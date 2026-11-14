@@ -1,4 +1,5 @@
 """Acceptance of the rebuilt executables, using generated audio only."""
+import argparse
 import asyncio
 import hashlib
 import json
@@ -6,6 +7,7 @@ import os
 import socket
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -18,8 +20,12 @@ from mcp.client.streamable_http import streamable_http_client
 from PyInstaller.archive.readers import CArchiveReader
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+parser = argparse.ArgumentParser()
+parser.add_argument('--dist-dir', type=Path, default=ROOT / 'dist')
+DIST = parser.parse_args().dist_dir.resolve()
 OUT = Path(tempfile.mkdtemp(prefix='build_acceptance_', dir=ROOT.parent / '_work'))
-EXE = ROOT / 'dist/srm/srm.exe'
+EXE = DIST / 'srm/srm.exe'
 PROJ = OUT / 'project'
 checks = {}
 
@@ -33,12 +39,12 @@ def cli(*args):
     assert r.returncode == 0, r.stderr[-500:]
     return json.loads(r.stdout)
 
-info = json.loads((ROOT / 'dist/BUILD_INFO.json').read_text('utf-8-sig'))
+info = json.loads((DIST / 'BUILD_INFO.json').read_text('utf-8-sig'))
 check('build_sources_match', all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest().upper() == sha
                                 for p, sha in info['source_files_sha256'].items()))
-check('executable_hashes_match', all(hashlib.sha256((ROOT / 'dist' / p).read_bytes()).hexdigest().upper() == sha
+check('executable_hashes_match', all(hashlib.sha256((DIST / p).read_bytes()).hexdigest().upper() == sha
                                     for p, sha in info['executables_sha256'].items()))
-archive = CArchiveReader(str(ROOT / 'dist/srm-gui/srm-gui.exe')).open_embedded_archive('PYZ.pyz')
+archive = CArchiveReader(str(DIST / 'srm-gui/srm-gui.exe')).open_embedded_archive('PYZ.pyz')
 for module in ('srm.gui.app', 'srm.gui.studio'):
     embedded = archive.extract(module)
     source = ROOT / (module.replace('.', '/') + '.py')
@@ -83,7 +89,8 @@ try:
                 async with ClientSession(streams[0], streams[1]) as session:
                     await session.initialize()
                     names = [v.name for v in (await session.list_tools()).tools]
-                    check('18_mcp_tools', len(names) == 18)
+                    check('artwork_mcp_tools', len(names) == 21 and
+                          all(n in names for n in ('get_album_artwork', 'set_album_description', 'generate_album_cover')))
 
                     async def call(name, args):
                         r = await session.call_tool(name, args)
@@ -97,6 +104,11 @@ try:
                     link = next(iter(prev['clips'].values()))['download']['url']
                     response = await hc.get(link)
                     check('preview_download_is_wav', response.status_code == 200 and response.content[:4] == b'RIFF')
+                    aid = tracks[0]['album_id']
+                    await call('set_album_description', {'album_id': aid, 'description': 'Night city and golden light'})
+                    art = await call('generate_album_cover', {'album_id': aid})
+                    jpeg = await hc.get(art['cover']['download']['url'])
+                    check('generated_cover_download_is_jpeg', jpeg.status_code == 200 and jpeg.content[:2] == b'\xff\xd8')
                     rejected = await session.call_tool('approve_processing_version', {
                         'track_id': tid, 'version_no': vn, 'decision': 'APPROVED', 'confirmation': 'yes'})
                     check('approval_requires_confirmation', bool(rejected.is_error))
@@ -108,6 +120,9 @@ try:
         report = json.loads(row[1])
         check('mcp_render_persisted_in_shared_db', row[0] == 'RENDERED')
         check('latest_analysis_in_frozen_engine', report['output_measurements']['analysis_version'] == 'analysis-1.3')
+        from srm.release.artwork import embedded_cover_hash
+        cover = json.loads(db.execute('SELECT metadata_json FROM albums WHERE id=?', (tracks[0]['album_id'],)).fetchone()[0])['artwork']
+        check('frozen_mp3_has_album_cover', embedded_cover_hash(Path(report['codec_preview']['path'])) == cover['sha256'])
     check('source_unchanged', hashlib.sha256(source.read_bytes()).hexdigest() == source_hash)
 finally:
     p.terminate()
@@ -116,7 +131,7 @@ finally:
 
 env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
 with (OUT / 'gui.log').open('w', encoding='utf-8') as glog:
-    gui = subprocess.Popen([str(ROOT / 'dist/srm-gui/srm-gui.exe'), str(PROJ)], env=env, stdout=glog, stderr=glog)
+    gui = subprocess.Popen([str(DIST / 'srm-gui/srm-gui.exe'), str(PROJ)], env=env, stdout=glog, stderr=glog)
     try:
         time.sleep(5)
         startup_log = (OUT / 'gui.log').read_text('utf-8', errors='replace')

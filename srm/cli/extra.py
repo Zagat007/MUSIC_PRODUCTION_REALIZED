@@ -165,6 +165,23 @@ def register(sub, add):
 
     add("profiles", profiles, "show export profiles and distributor rules (with verification status)")
 
+    def artwork(e, a):
+        if a.action == 'describe':
+            result = e.set_album_description(a.album, a.description)
+        elif a.action == 'generate':
+            result = e.generate_album_cover(a.album)
+        elif a.action == 'import':
+            result = e.import_album_cover(a.album, a.file)
+        else:
+            result = e.album_artwork(a.album)
+        _out(result)
+
+    sp = add('artwork', artwork, 'album description, cover import and free local abstract generation')
+    sp.add_argument('action', choices=('show', 'describe', 'generate', 'import'))
+    sp.add_argument('--album', required=True)
+    sp.add_argument('--description', default='')
+    sp.add_argument('--file')
+
     def stems(e, a):
         _out(e.import_stems(int(a.track_id), a.folder))
 

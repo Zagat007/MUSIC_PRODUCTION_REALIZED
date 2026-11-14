@@ -139,6 +139,19 @@ def test_capability_path_and_forbidden_root(server):
     assert "mcp:auth_failed" in audit and "mcp:scan_library" in audit
 
 
+def test_album_artwork_tools(server):
+    aid = server['engine'].list_albums()[0]['id']
+    results = run(_call(server['url'], server['token'], [
+        ('set_album_description', {'album_id': aid, 'description': 'Ночной город и свет отеля'}),
+        ('generate_album_cover', {'album_id': aid}),
+        ('get_album_artwork', {'album_id': aid}),
+    ]))
+    assert all(not result['is_error'] for result in results)
+    cover = results[-1]['data'] or json.loads(results[-1]['text'])
+    response = _local_get(cover['cover']['download']['url'])
+    assert response.status_code == 200 and response.content[:2] == b'\xff\xd8'
+
+
 def test_export_requires_phrase_and_job_flow(server):
     e = server["engine"]
     aid = e.list_albums()[0]["id"]

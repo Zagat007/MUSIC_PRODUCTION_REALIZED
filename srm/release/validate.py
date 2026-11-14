@@ -32,6 +32,20 @@ def validate_package(pkg: str | Path, *, ceiling_dbtp: float | None = None, tole
     ceiling = ceiling_dbtp if ceiling_dbtp is not None else man.get("ceiling_dbtp", -1.0)
     tracks_out = []
     global_checks: dict = {}
+    artwork = man.get('artwork')
+    expected_cover = artwork.get('sha256') if artwork else None
+    if artwork:
+        # Resolve only inside the package even when validating an externally edited manifest.
+        from PIL import Image
+
+        from srm.core.paths import ensure_within
+
+        image_path = ensure_within(pkg / artwork['file'], pkg)
+        image_ok = image_path.is_file() and sha256_file(image_path) == expected_cover
+        if image_ok:
+            with Image.open(image_path) as image:
+                image_ok = image.size == (3000, 3000) and image.mode == 'RGB'
+        global_checks['album_cover'] = _chk('PASS' if image_ok else 'FAIL')
     wavs = sorted((pkg / "WAV_MASTER").glob("*.wav"))
     names = [w.name for w in wavs]
     global_checks["track_count_matches_metadata"] = _chk(
@@ -84,12 +98,20 @@ def validate_package(pkg: str | Path, *, ceiling_dbtp: float | None = None, tole
             c["decodes"] = _chk("FAIL", error=str(exc)[-300:])
         mp3 = pkg / "MP3_PREVIEW" / (w.stem + ".mp3")
         if mp3.exists():
+            if expected_cover:
+                from srm.release.artwork import embedded_cover_hash
+
+                actual_cover = embedded_cover_hash(mp3)
+                c['embedded_album_cover'] = _chk('PASS' if actual_cover == expected_cover else 'FAIL',
+                                                 sha256=actual_cover, expected=expected_cover)
             mpr = probe(mp3)
             md = decode(mp3, sample_rate=mpr.sample_rate, channels=mpr.channels)
             tp = measure_peaks(md.audio, md.sample_rate)["true_peak_dbtp"]
             c["mp3_preview"] = _chk("PASS" if mpr.codec == "mp3" and tp <= 0.0 else "WARN", codec=mpr.codec,
                                     bit_rate=mpr.bit_rate, true_peak_dbtp=tp,
                                     note=None if tp <= 0.0 else "decoded MP3 exceeds 0 dBTP (codec overs)")
+        elif mt.get('mp3_preview_required'):
+            c['mp3_preview'] = _chk('FAIL', note='Required MP3 preview is missing')
         fl = pkg / "FLAC_ARCHIVE" / (w.stem + ".flac")
         if fl.exists():
             fpr = probe(fl)

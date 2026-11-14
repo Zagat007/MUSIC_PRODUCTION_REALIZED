@@ -1,6 +1,6 @@
 ﻿{
-    "built_at_utc":  "2026-11-14T16:00:03.0925696Z",
-    "source_commit":  "b42cfaca402965fd599c9148562c7741e0975c56",
+    "built_at_utc":  "2026-11-14T21:06:03.5772781Z",
+    "source_commit":  "f52cf8e0a389503b5c6fdff88e3a1e3156fc847c",
     "source_files_sha256":  {
                                 "srm/__init__.py":  "D2ECA7BB879DACE123257B11DBC160900291B8F2EE755A33E76B1539852CDD8C",
                                 "srm/analysis/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
@@ -13,7 +13,7 @@
                                 "srm/analysis/tempo.py":  "C23A62785DDAF138E2677F77ED3F25A11DCCDE6B6C9897DA9E68A29724918C0B",
                                 "srm/analysis/truepeak.py":  "BD0BF53BCD4BC97772ED53A3D26C9CCD45B68D8BBC7300C27DCD8C1ED9C05605",
                                 "srm/cli/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-                                "srm/cli/extra.py":  "9A60529845F6CBE53BCDB36D67129606B6A74DFBD066541C5383B78A0EC22E37",
+                                "srm/cli/extra.py":  "0D8692E46DC7DD49CB23C8DD9EA6112BD256EC72BFBB200474185949D84251D0",
                                 "srm/cli/main.py":  "AF5C8D72F1B5BACDC295C2CDF972B874EED9B356A21572A8FD44EC336056A65C",
                                 "srm/core/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
                                 "srm/core/db.py":  "F68BE181C0CD831CF8C0B519049399461CA8B590961AF407A215762A721D96DA",
@@ -28,25 +28,27 @@
                                 "srm/dsp/repair.py":  "C193F3C5028F328E783D883C5FFD11D8E2D9B06E3D497223BBB6B441BF11DFC8",
                                 "srm/gui/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
                                 "srm/gui/app.py":  "6866309016CF52E67695AB463056D5A637D3FCCDC750AF67EF2F10D21E91B018",
-                                "srm/gui/studio.py":  "524205FD5D71A298234DD41AD50DDD8B3D04444ACEA8466EB6C3F5ED2A6CE54C",
+                                "srm/gui/studio.py":  "2E761CD37078CDFC34C06372BC9A1C70BEE4E9D7718E831CB18A007C937B939E",
                                 "srm/ingest/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
                                 "srm/ingest/decode.py":  "C7FF26AA425CEC1C449EF0834AECC247D35BF1B744D3B2DC79D1EA5F97DB722B",
                                 "srm/ingest/probe.py":  "DCB921BB1DC62855A48A7C095628C6133006AF6ED62656A941553025EC6CA775",
                                 "srm/ingest/textmatch.py":  "1C622212C696E76622850F1CD7F8AED9E4DF728A3EB8837296983C5FFDCFB8C6",
                                 "srm/mcp_server/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-                                "srm/mcp_server/server.py":  "D72BDA3113964952D8EE68F0E0794B9DD6B6BE0E1A1E306ADDA304878576EC67",
+                                "srm/mcp_server/server.py":  "A1B40030CD0141EA67AD8918FB4CE9C00E2E9C7DCDE092779CAD49E74BD0C6B8",
                                 "srm/release/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-                                "srm/release/metadata.py":  "4B3B2272E8ABF7045878C47CC1FB0BB248DA02BE52CCD6E2CAF3117BB601CCDE",
+                                "srm/release/artwork.py":  "45FA2631DDF184B0BA87239A506011AA2930AE1C78E8A71ED5C32B8159F5A2B5",
+                                "srm/release/metadata.py":  "9133C0072B3EAE664193C948072302D7377A06133EC1EA330EE13ED392C98470",
                                 "srm/release/profiles.py":  "5A315947C3DD517C03A0DB13869966C217C350F675131DD01FFE91FD011CB513",
-                                "srm/release/validate.py":  "F39ABDD62893C980CD1A1F6A2A51875492B4277E8314384DA2F31EFC811C9AFB",
+                                "srm/release/validate.py":  "1917C7AE7F3596C95BFE6CB58F257AD4398FB93F34AC2A6A7A31FF2D36278C96",
                                 "srm/service/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-                                "srm/service/albums.py":  "025997101CBECBF392720DA15D2C791390C038E98C35BA07D9EFA04127C8638E",
-                                "srm/service/engine.py":  "351540AB862DD249D2EA411FA801990898F75317938ED1B552DEBF7E09AEC298",
-                                "srm/service/mastering.py":  "399A2D30C8BEEC13347A5334BCBB74AA862CAA7E718FD419DE1DFC4341E92969",
+                                "srm/service/albums.py":  "FDBEF298C951E94A94C3B712BDBBA2234DBC750852827E075D8906D70855898E",
+                                "srm/service/artwork.py":  "16CE3B05D6DD301DF481C54C3760F8228DF71A641D8D4DEC75E76DC9BAF63C9D",
+                                "srm/service/engine.py":  "C2CF87D81861B9E749C8047E807E010D261BC47B225F956E78247E947ADA1590",
+                                "srm/service/mastering.py":  "6734A813D5DD8A72D679DE8110474865D18B5A98A9DF13230A6ADD07DE440A2C",
                                 "srm/service/repairs.py":  "07B7B197503FDCE2B2059858136F198212D73279C43D199F80F9A147FFC605A9"
                             },
     "executables_sha256":  {
-                               "srm/srm.exe":  "C08A7F8E4B2184B80E7B49DFAAAB274A40092727B5F48AF471A991B7DC3F5B3E",
-                               "srm-gui/srm-gui.exe":  "443BB39AB57B71EF78CC51367E0919266ED0DA72E876EF1ABBACE571BA3E5D20"
+                               "srm/srm.exe":  "8F77B82A0152BA52825FB3D7CCC65A3FA3CA1CC226E524BA3494AEB73AC00B9E",
+                               "srm-gui/srm-gui.exe":  "E65CBB45B3EE20ACCA7709A180F1172B9CA1D3D198586555B72E935C3FBABB26"
                            }
 }

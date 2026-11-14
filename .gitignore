@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 build/
 dist/
+dist-albums/
+dist-artwork/
 *.spec.bak
 _work/
 tools/ffmpeg/

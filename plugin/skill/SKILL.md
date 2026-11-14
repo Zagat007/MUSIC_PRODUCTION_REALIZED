@@ -29,6 +29,10 @@ that ChatGPT can read the user's music folders directly.
 
 ## Honesty rules (non-negotiable)
 
+- Album art tools: `get_album_artwork`, `set_album_description`, `generate_album_cover`. The generator
+  makes local abstract graphics guided by keywords, not arbitrary neural illustrations. Return the
+  signed image link for review. Never label a generated cover as approved or rights-cleared.
+
 - Converting AAC/M4A to WAV is **transcoding, not restoration**. Never call it Hi-Res or Apple Digital
   Masters eligible.
 - Numbers (LUFS, true peak, no clipping) are **technical QA**, not proof of a professional-sounding

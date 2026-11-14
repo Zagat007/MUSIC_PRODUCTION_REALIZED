@@ -183,7 +183,7 @@ def build_server(project_root: str | Path, *, public_base_url: str = "http://127
     ro = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
     wr = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False)
     read_only = {"health_and_capabilities", "list_projects", "list_albums", "list_tracks", "get_analysis_report",
-                 "get_job_status", "validate_release", "get_release_manifest", "get_artifact_download"}
+                 "get_job_status", "validate_release", "get_release_manifest", "get_artifact_download", "get_album_artwork"}
 
     def tool(description: str):
         def deco(fn):
@@ -209,6 +209,29 @@ def build_server(project_root: str | Path, *, public_base_url: str = "http://127
     @guard
     def list_albums() -> list[dict]:
         return [{k: a[k] for k in ("id", "name", "tracks")} for a in eng.list_albums()]
+
+    def artwork_response(info):
+        cover = info['cover']
+        return {'album_id': info['album_id'], 'description': info['description'],
+                'cover': ({'id': cover['id'], 'method': cover['method'], 'sha256': cover['sha256'],
+                           'download': link(cover['path'])} if cover else None),
+                'versions': len(info['history']), 'previews': info.get('previews')}
+
+    @tool(description="Album description and selected cover with a signed image link. Read-only.")
+    @guard
+    def get_album_artwork(album_id: int) -> dict:
+        return artwork_response(eng.album_artwork(album_id))
+
+    @tool(description="Save the user's album description. Does not create or approve artwork.")
+    @guard
+    def set_album_description(album_id: int, description: str) -> dict:
+        return artwork_response(eng.set_album_description(album_id, description))
+
+    @tool(description="Create a new LOCAL ABSTRACT cover variant guided by the album description. "
+                      "No neural image model or paid API. Updates derived MP3 previews; source audio and old exports stay intact.")
+    @guard
+    def generate_album_cover(album_id: int) -> dict:
+        return artwork_response(eng.generate_album_cover(album_id))
 
     @tool(description="List tracks (optionally of one album id) with codec, lossy flag, analysis/version state.")
     @guard

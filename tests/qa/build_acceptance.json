@@ -8,16 +8,18 @@
     "numbered_filename_fix_in_exe": "PASS",
     "frozen_mcp_health": "PASS",
     "unauthenticated_request_rejected": "PASS",
-    "18_mcp_tools": "PASS",
+    "artwork_mcp_tools": "PASS",
     "preview_download_is_wav": "PASS",
+    "generated_cover_download_is_jpeg": "PASS",
     "approval_requires_confirmation": "PASS",
     "mcp_render_persisted_in_shared_db": "PASS",
     "latest_analysis_in_frozen_engine": "PASS",
+    "frozen_mp3_has_album_cover": "PASS",
     "source_unchanged": "PASS",
     "frozen_gui_stays_running": "PASS",
     "frozen_gui_no_startup_exception": "PASS"
   },
-  "evidence_folder": "E:\\PLAGIN_GPT_SUNO\\_work\\build_acceptance_hpu4n0nx",
+  "evidence_folder": "E:\\PLAGIN_GPT_SUNO\\_work\\build_acceptance_rbb5ig45",
   "live_chatgpt": "NOT VERIFIED",
   "listening_quality": "NOT VERIFIED"
 }

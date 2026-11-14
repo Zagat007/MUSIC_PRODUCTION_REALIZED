@@ -13,7 +13,7 @@ UNKNOWN = "UNKNOWN"
 TRACK_FIELDS = ["title", "artist", "version", "genre", "language", "year", "isrc", "explicit", "lyrics",
                 "songwriters", "producers", "performers", "credits_note"]
 ALBUM_FIELDS = ["album_title", "album_artist", "release_type", "genre", "year", "upc", "label", "copyright_line",
-                "phonographic_line", "language"]
+                "phonographic_line", "language", "album_description"]
 AI_FIELDS = ["ai_tool", "ai_model_version", "ai_generated_vocals", "ai_generated_music", "ai_generated_lyrics",
              "human_contribution_description"]
 RIGHTS_FIELDS = ["suno_plan_at_creation", "downloaded_while_on_paid_plan", "user_confirms_commercial_rights",
@@ -66,6 +66,8 @@ def clean_album_meta(update: dict) -> dict:
             raise MetadataError(f"unknown album metadata field {k!r}")
         if k == "upc" and v:
             v = validate_upc(v)
+        if k == 'album_description' and (not isinstance(v, str) or len(v) > 10000):
+            raise MetadataError('album_description must be text up to 10000 characters')
         out[k] = v
     return out
 
