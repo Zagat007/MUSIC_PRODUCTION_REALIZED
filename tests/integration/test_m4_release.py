@@ -72,7 +72,7 @@ def test_export_gates_and_draft(eng):
               "UNRESOLVED_WARNINGS.txt"):
         assert (pkg / f).exists(), f
     wavs = sorted(p.name for p in (pkg / "WAV_MASTER").glob("*.wav"))
-    assert wavs[0].startswith("01_Песня №1") and wavs[1].startswith("02_01 Liquid Night")  # album order honoured
+    assert wavs[0].startswith("01_Песня №1") and wavs[1].startswith("02_Liquid Night")  # album order honoured; number parsed from filename
     assert len(list((pkg / "MP3_PREVIEW").glob("*.mp3"))) == 2
     assert len(list((pkg / "QA").glob("*.html"))) == 2
     meta = json.loads((pkg / "album_metadata.json").read_text("utf-8"))

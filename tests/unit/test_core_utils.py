@@ -72,3 +72,44 @@ def test_text_matching(tmp_path):
     m3 = match_texts([d / "Midnight Walk.m4a"], [d / "Midnight Walks.txt"])
     assert m3[d / "Midnight Walk.m4a"]["status"] == "NEEDS_CONFIRMATION"
     assert Path(m3[d / "Midnight Walk.m4a"]["text"]).name == "Midnight Walks.txt"
+
+
+def test_track_number_parsing():
+    from srm.service.engine import split_track_number
+
+    assert split_track_number("01 — CONFESSION AT DAWN") == (1, "CONFESSION AT DAWN")
+    assert split_track_number("07_Track") == (7, "Track")
+    assert split_track_number("2024 Remix") == (None, "2024 Remix")
+    assert split_track_number("Тихая вода") == (None, "Тихая вода")
+
+
+def test_audio_ext_inside_text_name(tmp_path):
+    a, b = tmp_path / "Song.m4a", tmp_path / "Song (1).m4a"
+    t1, t2 = tmp_path / "Song.m4a.txt", tmp_path / "Song.m4a (1).txt"
+    m = match_texts([a, b], [t1, t2])
+    assert m[a]["text"] == t1 and m[b]["text"] == t2
+
+
+def test_scan_excludes_and_numbering(tmp_path):
+    import numpy as np
+    import soundfile as sf
+
+    from srm.service.engine import Engine
+
+    lib = tmp_path / "lib"
+    alb = lib / "03 — MY ALBUM"
+    (lib / "_ОТЛОЖЕНО").mkdir(parents=True)
+    alb.mkdir(parents=True)
+    x = np.zeros((4800, 2))
+    x[100:200] = 0.1
+    for name in ("02 — SECOND.wav", "01 — FIRST.wav"):
+        sf.write(alb / name, x, 48000)
+    sf.write(lib / "_ОТЛОЖЕНО" / "take.wav", x, 48000)
+    e = Engine(tmp_path / "proj")
+    e.add_library_root(lib, exclude=["_*"])
+    s = e.scan()
+    assert s["audio_files"] == 2 and s["excluded_dirs"] == ["_ОТЛОЖЕНО"]
+    tr = e.list_tracks("03 — MY ALBUM")
+    assert [(t["track_no"], t["title"]) for t in tr] == [(1, "FIRST"), (2, "SECOND")]
+    assert e.list_albums()[0]["metadata"]["album_title"] == "MY ALBUM"
+    assert e.scan()["excluded_dirs"] == ["_ОТЛОЖЕНО"]  # exclusion persists with the root

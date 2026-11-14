@@ -107,8 +107,12 @@ _VARIANT = re.compile(r"(\s*[\(\[]\s*\d+\s*[\)\]]|[\s_-]+(v|ver|version|take|alt
 _LYR_SUFFIX = re.compile(r"[\s_.-]+(lyrics|prompt|text|style|текст|промпт)$", re.I)
 
 
+_AUDIO_IN_STEM = re.compile(r"\.(m4a|mp3|wav|flac|aac|ogg|opus|aiff?|alac)(?=\s*(\(\d+\))?$)", re.I)
+
+
 def norm_base(name: str) -> str:
-    s = unicodedata.normalize("NFKC", Path(name).stem).casefold()
+    stem = _AUDIO_IN_STEM.sub("", Path(name).stem)  # 'Song.m4a.txt' / 'Song.m4a (1).txt' -> 'Song' / 'Song (1)'
+    s = unicodedata.normalize("NFKC", stem).casefold()
     s = _LYR_SUFFIX.sub("", s)
     s = re.sub(r"[_\-.]+", " ", s)
     s = re.sub(r"\s+", " ", s).strip()

@@ -57,7 +57,7 @@ def cmd_health(e, a):
 
 
 def cmd_scan(e, a):
-    rid = e.add_library_root(a.library)
+    rid = e.add_library_root(a.library, exclude=a.exclude)
     s = e.scan(rid, verify_decode=a.verify_decode,
                progress=lambda i, n, p: print(f"\r[scan] {i + 1}/{n}", end="", file=sys.stderr))
     print(file=sys.stderr)
@@ -146,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = add("scan", cmd_scan, "register a library root and scan it (read-only)")
     sp.add_argument("library")
     sp.add_argument("--verify-decode", action="store_true", help="fully decode every file during scan")
+    sp.add_argument("--exclude", nargs="*", help='folder-name globs to skip, e.g. "_*" (stored with the root)')
     add("albums", cmd_albums, "list album candidates")
     sp = add("tracks", cmd_tracks, "list tracks")
     sp.add_argument("--album")

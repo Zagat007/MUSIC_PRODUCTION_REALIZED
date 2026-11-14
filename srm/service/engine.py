@@ -6,8 +6,10 @@ unique, versioned paths. Long operations run as restartable jobs (per track, per
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
+import re
 import os
 import threading
 import time
@@ -116,7 +118,8 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
         }
 
     # ------------------------------------------------------------------ library roots
-    def add_library_root(self, path: str | Path) -> int:
+    def add_library_root(self, path: str | Path, exclude: list[str] | None = None) -> int:
+        """Authorize a library root. ``exclude``: folder-name glob patterns skipped during scans (e.g. "_*")."""
         p = Path(path).resolve()
         if not p.is_dir():
             raise EngineError(f"not a directory: {p}")
@@ -127,9 +130,12 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
             pass
         row = self.db.one("SELECT id FROM library_roots WHERE path=?", (str(p),))
         if row:
+            if exclude is not None:
+                self.db.execute("UPDATE library_roots SET exclude_json=? WHERE id=?", (_jdump(exclude), row["id"]))
             return row["id"]
-        cur = self.db.execute("INSERT INTO library_roots (path, added_at) VALUES (?,?)", (str(p), _now()))
-        self.db.audit("add_library_root", {"path": str(p)})
+        cur = self.db.execute("INSERT INTO library_roots (path, added_at, exclude_json) VALUES (?,?,?)",
+                              (str(p), _now(), _jdump(exclude or [])))
+        self.db.audit("add_library_root", {"path": str(p), "exclude": exclude or []})
         return cur.lastrowid
 
     def library_roots(self) -> list[dict]:
@@ -151,18 +157,25 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
              cancel: threading.Event | None = None, verify_decode: bool = False) -> dict:
         r = self.resolve_root(root)
         base = Path(r["path"])
+        excl = [e.lower() for e in json.loads(r.get("exclude_json") or "[]")]
         audio, texts = [], []
+        skipped_dirs = []
         for dirpath, dirnames, filenames in os.walk(base):
             dp = Path(dirpath)
-            dirnames[:] = sorted(d for d in dirnames if d.lower() not in SKIP_DIRS and not d.startswith(".")
-                                 and (dp / d).resolve() != self.root)
+            keep = []
+            for d in sorted(dirnames):
+                if any(fnmatch.fnmatch(d.lower(), pat) for pat in excl):
+                    skipped_dirs.append(str((dp / d).relative_to(base)))
+                elif d.lower() not in SKIP_DIRS and not d.startswith(".") and (dp / d).resolve() != self.root:
+                    keep.append(d)
+            dirnames[:] = keep
             for fn in sorted(filenames):
                 ext = Path(fn).suffix.lower()
                 if ext in AUDIO_EXT:
                     audio.append(dp / fn)
                 elif ext in TEXT_EXT:
                     texts.append(dp / fn)
-        summary = {"root": str(base), "audio_files": len(audio), "text_files": len(texts), "new": 0,
+        summary = {"root": str(base), "excluded_dirs": skipped_dirs, "audio_files": len(audio), "text_files": len(texts), "new": 0,
                    "unchanged": 0, "changed": 0, "probe_failed": 0, "lossy": 0, "errors": []}
         seen = set()
         for i, ap in enumerate(audio):
@@ -224,12 +237,21 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
             parent_rel = Path(rel).parent
             album_name = str(parent_rel).replace("\\", " / ") if str(parent_rel) != "." else "Unsorted"
             album_id = self._ensure_album(album_name, str(ap.parent))
-            title = pr.tags.get("title") or ap.stem
-            meta = {"title_source": "tag" if pr.tags.get("title") else "filename"}
-            n = self.db.one("SELECT COUNT(*) c FROM tracks WHERE album_id=?", (album_id,))["c"]
+            num, clean = split_track_number(ap.stem)
+            if pr.tags.get("title"):
+                title, src_kind = pr.tags["title"], "tag"
+            else:
+                title, src_kind = clean, ("filename_numbered" if num is not None else "filename")
+            meta = {"title_source": src_kind, "source_filename": ap.name}
+            if num is not None:
+                meta["filename_track_number"] = num
+                track_no = num
+            else:
+                n = self.db.one("SELECT MAX(track_no) m FROM tracks WHERE album_id=?", (album_id,))["m"] or 0
+                track_no = n + 1
             self.db.execute(
                 "INSERT INTO tracks (source_id, title, album_id, track_no, metadata_json, created_at) VALUES (?,?,?,?,?,?)",
-                (sid, title, album_id, n + 1, _jdump(meta), _now()))
+                (sid, title, album_id, track_no, _jdump(meta), _now()))
 
     def _verify_decode(self, sid: int, path: Path, pr: ProbeResult) -> dict:
         try:
@@ -251,8 +273,12 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
         row = self.db.one("SELECT id FROM albums WHERE name=?", (name,))
         if row:
             return row["id"]
-        return self.db.execute("INSERT INTO albums (name, folder_hint, created_at) VALUES (?,?,?)",
-                               (name, folder_hint, _now())).lastrowid
+        meta = {}
+        num, clean = split_track_number(Path(name).name)
+        if num is not None and folder_hint:
+            meta = {"album_title": clean, "album_order_from_folder": num}
+        return self.db.execute("INSERT INTO albums (name, folder_hint, metadata_json, created_at) VALUES (?,?,?,?)",
+                               (name, folder_hint, _jdump(meta), _now())).lastrowid
 
     def _ingest_texts(self, texts: list[Path], audio: list[Path]) -> None:
         matches = match_texts(audio, texts)
@@ -713,6 +739,17 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin):
         if extra:
             return extra(track_id, params)
         raise EngineError(f"unknown stage {stage}")
+
+
+_NUM_PREFIX = re.compile(r"^\s*(\d{1,3})\s*(?:[\u2014\u2013\-_.)]+\s*|\s+)(\S.*)$")
+
+
+def split_track_number(stem: str) -> tuple[int | None, str]:
+    """'01 — CONFESSION AT DAWN' -> (1, 'CONFESSION AT DAWN'); names without a leading number are unchanged."""
+    m = _NUM_PREFIX.match(stem)
+    if not m:
+        return None, stem
+    return int(m.group(1)), m.group(2).strip()
 
 
 def strip_report_for_db(report: dict) -> dict:

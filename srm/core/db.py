@@ -75,6 +75,10 @@ MIGRATIONS: list[str] = [
         id INTEGER PRIMARY KEY, track_id INTEGER NOT NULL REFERENCES tracks(id), source_sha TEXT NOT NULL,
         plan_json TEXT NOT NULL, status TEXT NOT NULL, created_at REAL);
     """,
+    # 4: per-root folder exclusions
+    """
+    ALTER TABLE library_roots ADD COLUMN exclude_json TEXT DEFAULT '[]';
+    """,
 ]
 
 
