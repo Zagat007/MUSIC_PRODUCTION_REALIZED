@@ -88,3 +88,20 @@ def test_tempo_half_double_ambiguity(fixture_lib):
     bpms = [c["bpm"] for c in r["candidates"]]
     # Fixture is 172 BPM: either 172 or 86 must be primary, and both must be listed
     assert any(abs(b - 172) < 3 for b in bpms) and any(abs(b - 86) < 2 for b in bpms)
+
+
+def test_no_clicks_from_lsb_dither_in_silence():
+    """Real-library regression: LSB toggles in a fade-out were reported as x244140 'clicks'."""
+    from srm.analysis.defects import detect_clicks
+
+    fs = 48000
+    rng = np.random.default_rng(3)
+    x = np.zeros((fs * 6, 2))
+    t = np.arange(fs * 3) / fs
+    x[: fs * 3, 0] = x[: fs * 3, 1] = 0.3 * np.sin(2 * np.pi * 220 * t) * np.minimum(1, (3 - t) / 0.5)  # faded
+    lsb = 1 / 32768
+    x[fs * 3:] = rng.integers(-1, 2, size=(fs * 3, 2)) * lsb * (rng.random((fs * 3, 2)) < 0.01)
+    assert detect_clicks(x, fs) == []
+    x[int(4.5 * fs), 0] += 0.2  # a genuine click in the quiet tail is still found
+    found = detect_clicks(x, fs)
+    assert len(found) == 1 and abs(found[0]["start_s"] - 4.5) < 0.002 and found[0]["channel"] == 0

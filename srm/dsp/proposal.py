@@ -24,7 +24,12 @@ def pick_preset(meas: dict, override: str | None) -> tuple[str, str]:
     if not ranked or st.get("mixed_or_uncertain"):
         return "generic", "style uncertain/mixed -> generic (heuristic guesses are not used to pick aggressive presets)"
     top = ranked[0]["style"]
-    return (top if top in PRESETS else "generic"), f"heuristic top style '{top}' (LOW confidence; please confirm)"
+    if st.get("confidence", "LOW") != "HIGH":
+        # A LOW-confidence guess must not move loudness: on a real album it raised one track +4 dB
+        # into a -11..-8 LUFS window while its neighbours stayed at -14. The user's style choice decides.
+        return "generic", (f"heuristic hint '{top}' is LOW confidence -> generic; set the style "
+                           f"(track-meta --style {top}) to use the '{top}' preset")
+    return (top if top in PRESETS else "generic"), f"style '{top}' (HIGH confidence)"
 
 
 def propose(meas: dict, *, mode: str = "SAFE_MASTER", preset: str | None = None, ceiling_dbtp: float = -1.0,

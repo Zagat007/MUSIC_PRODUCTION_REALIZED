@@ -96,7 +96,10 @@ def estimate_tempo(x: np.ndarray, fs: int, lo: float = 55.0, hi: float = 200.0) 
             cands.append({"bpm": round(b, 1), "relation": rel, "autocorr": round(s_, 3)})
     peak_val = float(vals[best_i])
     conf = "LOW" if peak_val < 0.15 else ("MEDIUM" if peak_val < 0.35 else "HIGH")
-    amb = [c for c in cands if c["relation"] != "primary" and c["autocorr"] > 0.6 * peak_val]
+    # Compare like with like: every candidate's autocorr comes from score_at(); the primary's raw peak
+    # (vals[best_i]) is a different window and made the flag fire on every periodic track.
+    prim = next((c["autocorr"] for c in cands if c["relation"] == "primary"), peak_val)
+    amb = [c for c in cands if c["relation"] != "primary" and c["autocorr"] >= 0.9 * prim]
     return {
         "status": "ESTIMATE",
         "bpm": round(best_bpm, 1),

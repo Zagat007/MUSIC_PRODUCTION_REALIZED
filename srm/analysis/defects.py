@@ -82,6 +82,9 @@ def detect_clipping(x: np.ndarray, fs: int, max_items: int = 50) -> list[dict]:
     return res
 
 
+CLICK_ABS_FLOOR = 10 ** (-60 / 20)  # 2nd-difference magnitude, full scale = 1.0
+
+
 def detect_clicks(x: np.ndarray, fs: int, k: float = 14.0, max_items: int = 100) -> list[dict]:
     """Impulsive outliers in the 2nd difference that are NOT followed by a sustained onset."""
     res = []
@@ -101,6 +104,9 @@ def detect_clicks(x: np.ndarray, fs: int, k: float = 14.0, max_items: int = 100)
         med_s = np.maximum.reduce([np.roll(med, i) for i in (-2, -1, 0, 1, 2)])
         scale = np.repeat(med_s, blk)
         scale = np.concatenate([scale, np.full(n - scale.size, med_s[-1])])
+        # Absolute floor: in fades / near-silence the block median is ~0 and LSB-level dither toggles
+        # looked like x100000 "clicks". Ignore impulses whose 2nd-difference jump is below -60 dBFS.
+        scale = np.maximum(scale, CLICK_ABS_FLOOR / k)
         idx = np.where(ar > k * scale)[0]
         if idx.size == 0:
             continue

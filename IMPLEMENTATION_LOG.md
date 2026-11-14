@@ -218,3 +218,34 @@ Files: `tests/integration/test_m7_batch_robustness.py`, `scripts/make_qa_evidenc
 
 Subjective audio quality of any master: **NOT VERIFIED** — requires human listening on real Suno material.
 Budget gate M7: PASS — zero new charges.
+
+## Real-library run — F:\НА РЕЛИЗ (2026-11-14)
+
+Read-only scan of the user's release folder (sources never modified; outputs only under `_work/`).
+
+- Scan: 459 tracks / 38 albums, 0 probe failures; `_`-prefixed folders excluded. 419 lossy (393 MP3, 26 Opus), 40 lossless.
+- Analysis: 459/459, 0 failures (~1 h, 4 workers).
+- Cross-check vs the user's own FFmpeg ebur128 audit CSV (all 459 joined): integrated LUFS |Δ| max 0.05 LU,
+  LRA |Δ| max 0.12 LU, true peak |Δ| max 0.097 dB — **PASS** (residual is CSV rounding / oversampler difference).
+
+Defects found by the real data (root causes fixed, regression tests added):
+
+1. **Click detector flooded on fade-outs** — block median of the 2nd difference was 0 in near-silence, so
+   LSB-level dither toggles scored ×244 140. Fix: absolute floor (−60 dBFS 2nd-difference jump).
+   Test `test_no_clicks_from_lsb_dither_in_silence`.
+2. **Tempo `octave_ambiguous` true on 459/459** — compared the primary's raw autocorrelation peak against
+   alternatives scored by a different window. Fix: like-for-like scores, ≥0.9 threshold. Now 384/459, which is the
+   honest result for autocorrelation (half/double time genuinely scores alike).
+3. **LOW-confidence style guess chose a loud preset** — on STATIC MERCY one track got +3.95 dB into a −11…−8 LUFS
+   window while the rest of the album stayed at −14…−13. Fix: heuristic hints never select a preset; only a user
+   style/preset does. Test `test_low_confidence_style_never_picks_loud_preset`.
+   `ANALYSIS_VERSION` → analysis-1.3; library re-analysed (0 failures).
+
+Still **NOT VERIFIED / limited**: remaining click candidates in loud music (~18k across the library, capped at 100/track)
+are short broadband bursts present in both channels — percussion attacks or generation artefacts cannot be told apart
+without listening. 12 snippets + a marking sheet were cut to `_work/listening/click_candidates/` to calibrate.
+
+Sample master — 24 — STATIC MERCY (12 × WAV, lossless): SAFE_MASTER v002, generic preset, gains +0…+1.28 dB,
+no limiting engaged, album spread 2.3 → 1.1 LU, all technical checks PASS; draft export
+`DRAFT_NOT_RELEASE_READY` (109 open human gates: approvals, artist, AI disclosure, rights, credits, listening).
+Subjective quality: NOT VERIFIED.

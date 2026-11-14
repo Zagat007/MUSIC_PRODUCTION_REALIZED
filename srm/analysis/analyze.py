@@ -9,7 +9,7 @@ from srm.analysis.genre import estimate_style
 from srm.analysis.loudness import measure_loudness
 from srm.analysis.truepeak import measure_peaks
 
-ANALYSIS_VERSION = "analysis-1.2"  # bump whenever any measurement code changes (cache key)
+ANALYSIS_VERSION = "analysis-1.3"  # bump whenever any measurement code changes (cache key)
 
 
 def analyze_audio(x: np.ndarray, fs: int, *, prompt_text: str | None = None, with_defects: bool = True,

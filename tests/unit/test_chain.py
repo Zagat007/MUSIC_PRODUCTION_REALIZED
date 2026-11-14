@@ -88,12 +88,13 @@ def test_proposal_never_forces_minus14_and_caps_limiting():
     meas = {"loudness": {"integrated_lufs": -20.0, "lra_lu": 6.0}, "peaks": {"true_peak_dbtp": -0.5},
             "dynamics": {}, "spectral": {"band_energy_db_rel": {}}, "defects": {"candidates": []},
             "style": {"ranked": [{"style": "ambient_jazz"}], "mixed_or_uncertain": False}}
-    p = propose(meas)
+    assert propose(meas)["preset"] == "generic"  # LOW-confidence guess alone never picks the preset
+    p = propose(meas, preset="ambient_jazz")  # user-confirmed style
     g = p["chain"]["gain"]
     # Ambient window starts at -18 LUFS; peak already -0.5 dBTP -> gain capped by max_limiter_gr (1 dB)
     assert p["preset"] == "ambient_jazz"
     assert g["enabled"] and g["gain_db"] <= 0.5 + 1e-9
-    pres = propose(meas, loudness_policy="preserve")
+    pres = propose(meas, preset="ambient_jazz", loudness_policy="preserve")
     assert not pres["chain"]["gain"]["enabled"]
     assert all("settings" in a and "risk" in a and "evidence" in a for a in p["actions"])
 
@@ -124,3 +125,11 @@ def test_limiter_file_start_at_full_scale():
     head = peak_envelope(y, FS)[: int(0.02 * FS)]  # full-signal envelope (slicing adds edge overshoot)
     assert db(head.max()) <= -1.0
     assert info["max_gr_db"] < 6.0  # no runaway iterations
+
+
+def test_low_confidence_style_never_picks_loud_preset():
+    from srm.dsp.proposal import pick_preset
+
+    meas = {"style": {"ranked": [{"style": "pop_electronic"}], "confidence": "LOW", "mixed_or_uncertain": False}}
+    assert pick_preset(meas, None)[0] == "generic"
+    assert pick_preset(meas, "pop_electronic")[0] == "pop_electronic"  # explicit user choice wins
