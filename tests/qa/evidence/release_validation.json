@@ -1,0 +1,277 @@
+{
+ "package": "E:\\PLAGIN_GPT_SUNO\\_work\\qa\\evidence_20261114_062547\\project\\RELEASES\\Album A\\v001",
+ "profile": "release_wav",
+ "overall": "DRAFT_NOT_RELEASE_READY",
+ "technical": "PASS",
+ "human_gates": "PENDING",
+ "unresolved_count": 28,
+ "global_checks": {
+  "track_count_matches_metadata": {
+   "status": "PASS",
+   "wav_files": 3,
+   "metadata_tracks": 3
+  },
+  "ordered_contiguous_numbering": {
+   "status": "PASS",
+   "numbers": [
+    1,
+    2,
+    3
+   ]
+  },
+  "no_duplicate_names": {
+   "status": "PASS"
+  },
+  "path_lengths": {
+   "status": "PASS",
+   "over_limit": [],
+   "limit": 240
+  }
+ },
+ "tracks": [
+  {
+   "file": "01_01 Liquid Night.wav",
+   "checks": {
+    "probe_ok": {
+     "status": "PASS",
+     "error": null
+    },
+    "codec": {
+     "status": "PASS",
+     "value": "pcm_s24le",
+     "expected": "pcm_s24le"
+    },
+    "bit_depth": {
+     "status": "PASS",
+     "value": 24
+    },
+    "sample_rate": {
+     "status": "PASS",
+     "value": 48000
+    },
+    "channels": {
+     "status": "PASS",
+     "value": 2
+    },
+    "checksum_matches_manifest": {
+     "status": "PASS",
+     "sha256": "91e3a53e681e2015b47579719358ae3e381309da721fb390b44410b5e6bf4237"
+    },
+    "decodes": {
+     "status": "PASS",
+     "warnings": []
+    },
+    "duration_vs_source": {
+     "status": "PASS",
+     "exported_s": 24.0,
+     "source_s": 24.0
+    },
+    "not_silent": {
+     "status": "PASS"
+    },
+    "no_unintended_edge_silence": {
+     "status": "PASS",
+     "leading_s": 0.0,
+     "trailing_s": 0.006
+    },
+    "true_peak_vs_policy": {
+     "status": "PASS",
+     "value": -1.104,
+     "ceiling": -1.0,
+     "tolerance": 0.05
+    },
+    "loudness_measured": {
+     "status": "INFO",
+     "integrated_lufs": -14.36,
+     "lra_lu": 0.65,
+     "vs_version_report": -14.36
+    },
+    "loudness_matches_render": {
+     "status": "PASS",
+     "delta": 0.001
+    },
+    "mp3_preview": {
+     "status": "PASS",
+     "codec": "mp3",
+     "bit_rate": 320000,
+     "true_peak_dbtp": -0.666,
+     "note": null
+    },
+    "flac_lossless_vs_wav": {
+     "status": "PASS"
+    },
+    "listening_signoff": {
+     "status": "PENDING",
+     "note": "No listening sign-off recorded for this version"
+    },
+    "version_approved": {
+     "status": "PASS",
+     "value": "APPROVED"
+    }
+   }
+  },
+  {
+   "file": "02_02 Rain Code (1).wav",
+   "checks": {
+    "probe_ok": {
+     "status": "PASS",
+     "error": null
+    },
+    "codec": {
+     "status": "PASS",
+     "value": "pcm_s24le",
+     "expected": "pcm_s24le"
+    },
+    "bit_depth": {
+     "status": "PASS",
+     "value": 24
+    },
+    "sample_rate": {
+     "status": "PASS",
+     "value": 48000
+    },
+    "channels": {
+     "status": "PASS",
+     "value": 2
+    },
+    "checksum_matches_manifest": {
+     "status": "PASS",
+     "sha256": "9f8970383009ce4be04c61bb4fb02cd556fad0c6e5122c5744153acd6e0bbefb"
+    },
+    "decodes": {
+     "status": "PASS",
+     "warnings": []
+    },
+    "duration_vs_source": {
+     "status": "PASS",
+     "exported_s": 20.0107,
+     "source_s": 20.0107
+    },
+    "not_silent": {
+     "status": "PASS"
+    },
+    "no_unintended_edge_silence": {
+     "status": "PASS",
+     "leading_s": 0.0,
+     "trailing_s": 0.013
+    },
+    "true_peak_vs_policy": {
+     "status": "PASS",
+     "value": -1.104,
+     "ceiling": -1.0,
+     "tolerance": 0.05
+    },
+    "loudness_measured": {
+     "status": "INFO",
+     "integrated_lufs": -14.14,
+     "lra_lu": 0.62,
+     "vs_version_report": -14.14
+    },
+    "loudness_matches_render": {
+     "status": "PASS",
+     "delta": 0.001
+    },
+    "mp3_preview": {
+     "status": "PASS",
+     "codec": "mp3",
+     "bit_rate": 320000,
+     "true_peak_dbtp": -0.929,
+     "note": null
+    },
+    "flac_lossless_vs_wav": {
+     "status": "PASS"
+    },
+    "listening_signoff": {
+     "status": "PENDING",
+     "note": "No listening sign-off recorded for this version"
+    },
+    "version_approved": {
+     "status": "PASS",
+     "value": "APPROVED"
+    }
+   }
+  },
+  {
+   "file": "03_02 Rain Code.wav",
+   "checks": {
+    "probe_ok": {
+     "status": "PASS",
+     "error": null
+    },
+    "codec": {
+     "status": "PASS",
+     "value": "pcm_s24le",
+     "expected": "pcm_s24le"
+    },
+    "bit_depth": {
+     "status": "PASS",
+     "value": 24
+    },
+    "sample_rate": {
+     "status": "PASS",
+     "value": 48000
+    },
+    "channels": {
+     "status": "PASS",
+     "value": 2
+    },
+    "checksum_matches_manifest": {
+     "status": "PASS",
+     "sha256": "3010bfc3b5d329fdac55675456be26f3ee32de947b4bd405c6bc4510c7e346d6"
+    },
+    "decodes": {
+     "status": "PASS",
+     "warnings": []
+    },
+    "duration_vs_source": {
+     "status": "PASS",
+     "exported_s": 20.0107,
+     "source_s": 20.0107
+    },
+    "not_silent": {
+     "status": "PASS"
+    },
+    "no_unintended_edge_silence": {
+     "status": "PASS",
+     "leading_s": 0.0,
+     "trailing_s": 0.014
+    },
+    "true_peak_vs_policy": {
+     "status": "PASS",
+     "value": -1.104,
+     "ceiling": -1.0,
+     "tolerance": 0.05
+    },
+    "loudness_measured": {
+     "status": "INFO",
+     "integrated_lufs": -14.72,
+     "lra_lu": 0.73,
+     "vs_version_report": -14.72
+    },
+    "loudness_matches_render": {
+     "status": "PASS",
+     "delta": -0.002
+    },
+    "mp3_preview": {
+     "status": "PASS",
+     "codec": "mp3",
+     "bit_rate": 320000,
+     "true_peak_dbtp": -1.301,
+     "note": null
+    },
+    "flac_lossless_vs_wav": {
+     "status": "PASS"
+    },
+    "listening_signoff": {
+     "status": "PENDING",
+     "note": "No listening sign-off recorded for this version"
+    },
+    "version_approved": {
+     "status": "PASS",
+     "value": "APPROVED"
+    }
+   }
+  }
+ ],
+ "note": "Technical validation of exported bytes only. It is not legal, rights or aesthetic approval, and it does not publish anything. Check your distributor's current requirements before upload."
+}

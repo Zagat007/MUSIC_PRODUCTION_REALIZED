@@ -170,3 +170,51 @@ same project DB, downloads return real RIFF bytes). Defect fixed: test client us
 SDK v2 uses `is_error`/`structured_content`.
 Live ChatGPT connection: **NOT VERIFIED** (needs user's account + public HTTPS URL). Skills article: NOT VERIFIED (403).
 Budget gate M5/M6: PASS — zero new charges; tunnels documented as optional free-tier choices under user control.
+
+## M7 — Full regression, robustness, security/licence audit, batch dry-run, evidence
+
+Files: `tests/integration/test_m7_batch_robustness.py`, `scripts/make_qa_evidence.py`, `scripts/test_windows.ps1`,
+`docs/{AUDIO_VALIDATION,LIMITATIONS,USER_GUIDE_RU,RELEASE_PROFILES,DSP_DECISIONS,ARCHITECTURE}.md`,
+`LICENSE-THIRD-PARTY.md`, `README.md`, `CHANGELOG.md`, `tests/qa/evidence/*`, `tests/qa/pytest_log.txt`.
+
+* 100-file batch (4 album folders, AAC): scan → analysis interrupted at 37 + simulated crash (item left RUNNING)
+  → resumed from a fresh Engine (idempotency key returns same job) → 100/100 done, 0 failed, no duplicate
+  analyses, incremental rescan (100 unchanged), all 100 source hashes identical. ~44 s.
+* Robustness: missing FFmpeg (clear message, health UNAVAILABLE), read-only sources + undecodable text (works;
+  bit-exact convert), low disk (refuses, nothing registered), cancel → CANCELLED → resume COMPLETED,
+  corrupt/truncated files (per-file failure, job continues). GPU: not used (CPU-only design).
+* Security: no network imports outside the optional MCP module (test); MCP fails closed (tests); no shell/delete/
+  path tools; FFmpeg fixed argument lists with `file:` inputs.
+* Licence audit from installed metadata → LICENSE-THIRD-PARTY.md (FFmpeg GPL build not bundled; PySide6 LGPL
+  onedir; libsndfile LGPL DLL; Essentia/AGPL and model weights excluded).
+* Evidence run with the frozen `srm.exe` (all exit codes as expected, unconfirmed export refused with exit 1):
+  exported 24-bit/48 kHz PCM, TP −1.104 dBTP on all tracks (ceiling −1.0), MP3 previews −0.67…−1.30 dBTP,
+  FLAC == WAV, status DRAFT_NOT_RELEASE_READY (no listening sign-off, artist/AI/rights unset, lossy sources).
+* Executables rebuilt after M6 (dist/ now includes the MCP module); frozen `srm.exe serve-mcp` answered
+  /health and returned 401 for unauthenticated /mcp.
+* Final regression: `scripts/test_windows.ps1` → **68 passed, exit code 0** (log `tests/qa/pytest_log.txt`).
+  `ruff check srm tests scripts` → clean.
+
+### Final acceptance table
+
+| # | Gate | Result |
+|---|---|---|
+| 1 | ≥100 fixtures discovered/analyzed, resume after interruption | PASS |
+| 2 | Input hashes unchanged incl. failure/cancel | PASS |
+| 3 | AAC-in-M4A lossy + warned; ALAC distinguished | PASS |
+| 4 | Exported WAV codec/rate/bits/channels/duration probed from bytes | PASS |
+| 5 | Real CLI path and GUI path on fixtures | PASS (CLI incl. frozen exe; GUI offscreen + frozen launch) |
+| 6 | Reports with pre/post measurements, configs, provenance, per-track errors | PASS |
+| 7 | True peak cross-checked; within profile tolerance; real MP3 previews analysed | PASS |
+| 8 | No auto-repair on uncertain regions; bypass/history/A-B | PASS |
+| 9 | Style uncertainty + override; prompt matching/ambiguity | PASS (heuristic only, LOW confidence) |
+| 10 | Ordered export, truthful metadata, DRAFT when unresolved | PASS |
+| 11 | MCP reaches same backend, not mocked; unauthorized fails closed | PASS (localhost); live ChatGPT NOT VERIFIED |
+| 12 | Windows install/build steps + executable | PASS on Windows 11 x64 (onedir, unsigned); Windows 10 / installer NOT VERIFIED |
+| 13 | CI-style test run with logged commands/exit codes; listening reported separately | PASS (automated); listening sign-off NOT VERIFIED (human task) |
+| 14 | Graceful recovery (FFmpeg missing, models missing, partial files, encodings, read-only, low disk) | PASS (GPU: N/A) |
+| 15 | Provenance, reproducibility, licensing documented | PASS |
+| 16 | Zero-cost offline acceptance | PASS for no-payment/no-account/no-API; physically disconnected network run NOT VERIFIED (code audit only) |
+
+Subjective audio quality of any master: **NOT VERIFIED** — requires human listening on real Suno material.
+Budget gate M7: PASS — zero new charges.

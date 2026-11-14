@@ -6,6 +6,7 @@ from conftest import track_by_name
 from srm.analysis.loudness import integrated_lufs
 from srm.core.paths import sha256_file
 from srm.ingest.probe import probe
+from srm.service.engine import EngineError
 
 
 @pytest.fixture(scope="module")
@@ -27,7 +28,7 @@ def test_safe_master_render_and_validate(eng):
     assert r["comparison"]["loudness.integrated_lufs"]["before"] is not None
     assert [s["stage"] for s in r["processing"]["stages"]][0] == "input"
     # immutability: re-rendering the same version is refused
-    with pytest.raises(Exception):
+    with pytest.raises(EngineError):
         eng.render_version(t["id"], p["version_no"])
 
 
@@ -67,7 +68,7 @@ def test_ab_preview_loudness_matched(eng):
 def test_approval_flow_and_tamper_check(eng, tmp_path):
     t = track_by_name(eng, "Тихая вода")
     p = eng.suggest_mastering(t["id"])
-    with pytest.raises(Exception):
+    with pytest.raises(EngineError):
         eng.approve(t["id"], p["version_no"])  # not rendered yet
     r = eng.render_version(t["id"], p["version_no"], codec_preview=False)
     v = eng.approve(t["id"], p["version_no"], note="A-B listened on headphones")

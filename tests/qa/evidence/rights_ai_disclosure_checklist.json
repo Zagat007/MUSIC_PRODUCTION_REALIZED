@@ -1,0 +1,67 @@
+{
+ "status": "INCOMPLETE",
+ "suno_rights_reference": {
+  "verified": "2026-11-14",
+  "url": "https://help.suno.com/en/articles/9601665",
+  "summary": "Suno states commercial-use rights apply to songs downloaded while on a paid plan; commercial-use rights do not guarantee copyright protection. Free-plan / pre-subscription terms must be checked separately (https://help.suno.com/en/articles/2425729). This tool does not determine legal ownership."
+ },
+ "distributor": "generic",
+ "distributor_rules": {
+  "label": "Generic distributor (no platform-specific rules)",
+  "accepted": [
+   "WAV PCM 16/24-bit 44.1/48 kHz stereo"
+  ],
+  "verification": {
+   "status": "N/A",
+   "note": "Generic preset - always check your distributor's current upload form."
+  }
+ },
+ "tracks": [
+  {
+   "track_number": 1,
+   "title": "01 Liquid Night",
+   "ai_tool": "UNKNOWN",
+   "ai_model_version": "UNKNOWN",
+   "ai_generated_vocals": "UNKNOWN",
+   "ai_generated_music": "UNKNOWN",
+   "ai_generated_lyrics": "UNKNOWN",
+   "human_contribution_description": "UNKNOWN",
+   "suno_plan_at_creation": "UNKNOWN",
+   "downloaded_while_on_paid_plan": "UNKNOWN",
+   "user_confirms_commercial_rights": "UNKNOWN",
+   "samples_or_third_party_material": "UNKNOWN",
+   "distributor_ai_disclosure_completed": "UNKNOWN"
+  },
+  {
+   "track_number": 2,
+   "title": "02 Rain Code (1)",
+   "ai_tool": "UNKNOWN",
+   "ai_model_version": "UNKNOWN",
+   "ai_generated_vocals": "UNKNOWN",
+   "ai_generated_music": "UNKNOWN",
+   "ai_generated_lyrics": "UNKNOWN",
+   "human_contribution_description": "UNKNOWN",
+   "suno_plan_at_creation": "UNKNOWN",
+   "downloaded_while_on_paid_plan": "UNKNOWN",
+   "user_confirms_commercial_rights": "UNKNOWN",
+   "samples_or_third_party_material": "UNKNOWN",
+   "distributor_ai_disclosure_completed": "UNKNOWN"
+  },
+  {
+   "track_number": 3,
+   "title": "02 Rain Code",
+   "ai_tool": "UNKNOWN",
+   "ai_model_version": "UNKNOWN",
+   "ai_generated_vocals": "UNKNOWN",
+   "ai_generated_music": "UNKNOWN",
+   "ai_generated_lyrics": "UNKNOWN",
+   "human_contribution_description": "UNKNOWN",
+   "suno_plan_at_creation": "UNKNOWN",
+   "downloaded_while_on_paid_plan": "UNKNOWN",
+   "user_confirms_commercial_rights": "UNKNOWN",
+   "samples_or_third_party_material": "UNKNOWN",
+   "distributor_ai_disclosure_completed": "UNKNOWN"
+  }
+ ],
+ "disclaimer": "Checklist only - this is not legal advice or automatic rights approval."
+}

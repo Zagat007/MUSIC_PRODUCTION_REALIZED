@@ -33,9 +33,9 @@ from srm.core.tools import get_tools, tools_status
 from srm.ingest.decode import DecodeError, decode
 from srm.ingest.probe import ProbeResult, probe
 from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, read_text
+from srm.service.albums import AlbumMixin
 from srm.service.mastering import MasteringMixin
 from srm.service.repairs import RepairMixin
-from srm.service.albums import AlbumMixin
 
 AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", ".aiff", ".ogg", ".opus", ".alac"}
 TEXT_EXT = {".txt", ".md"}

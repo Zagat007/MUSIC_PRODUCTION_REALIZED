@@ -5,8 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-from conftest import ROOT, track_by_name
 
+from conftest import ROOT, track_by_name
 from srm.core.paths import sha256_file
 from srm.ingest.probe import probe
 

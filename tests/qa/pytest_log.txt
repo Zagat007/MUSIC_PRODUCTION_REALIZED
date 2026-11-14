@@ -1,0 +1,14 @@
+﻿....................................................................     [100%]
+============================ slowest 10 durations =============================
+55.94s call     tests/integration/test_m7_batch_robustness.py::test_batch_100_interrupt_resume
+53.29s call     tests/integration/test_m6_mcp.py::test_export_requires_phrase_and_job_flow
+30.18s call     tests/integration/test_m4_release.py::test_export_gates_and_draft
+23.64s call     tests/integration/test_m1_ingest_convert.py::test_cli_end_to_end
+16.37s call     tests/integration/test_m5_gui.py::test_gui_end_to_end
+16.03s call     tests/integration/test_m1_ingest_convert.py::test_analysis_job_resume_and_failures
+15.16s call     tests/integration/test_m2_mastering.py::test_render_deterministic
+14.70s call     tests/integration/test_m6_mcp.py::test_tools_reach_real_engine
+12.35s setup    tests/integration/test_m1_ingest_convert.py::test_scan_summary
+10.71s call     tests/integration/test_m4_release.py::test_validator_detects_tampering
+68 passed in 349.78s (0:05:49)
+exit code: 0

@@ -2,7 +2,6 @@
 
 import os
 import time
-from pathlib import Path
 
 import pytest
 
@@ -30,7 +29,7 @@ def test_gui_end_to_end(tmp_path, fixture_lib):
     w = MainWindow(str(tmp_path / "gui_proj"))
     w.show()
     lib = fixture_lib / "Альбом Б"
-    worker = w.scan(str(lib))
+    w.scan(str(lib))
     _wait(app, lambda: w.engine.list_tracks() and w.track_table.rowCount() == 3)
     # Analyse all via the GUI job path (background thread, progress bar)
     w.start_job("analyze", ["analyze"], {})

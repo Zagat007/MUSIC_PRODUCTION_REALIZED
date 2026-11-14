@@ -5,7 +5,7 @@ import soundfile as sf
 from conftest import track_by_name
 from srm.analysis.defects import detect_clicks
 from srm.dsp.repair import apply_edit, plan_from_candidates, regression_check
-from srm.service.engine import Engine, EngineError
+from srm.service.engine import EngineError
 
 
 @pytest.fixture(scope="module")

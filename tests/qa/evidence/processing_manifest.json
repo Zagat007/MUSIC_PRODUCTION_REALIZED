@@ -1,0 +1,479 @@
+{
+ "app_version": "0.1.0",
+ "created_at": 1794626811.8644257,
+ "profile": "release_wav",
+ "profile_spec": {
+  "label": "Release WAV (24-bit PCM, 44.1/48 kHz native)",
+  "format": "WAV",
+  "codec": "pcm_s24le",
+  "bits": 24,
+  "allowed_rates": [
+   44100,
+   48000
+  ],
+  "channels": 2
+ },
+ "ceiling_dbtp": -1.0,
+ "distributor": "generic",
+ "tracks": [
+  {
+   "track_number": 1,
+   "file": "01_01 Liquid Night.wav",
+   "wav_sha256": "91e3a53e681e2015b47579719358ae3e381309da721fb390b44410b5e6bf4237",
+   "source": {
+    "path": "E:\\PLAGIN_GPT_SUNO\\_work\\qa\\evidence_20261114_062547\\fx\\library\\Album A\\01 Liquid Night.m4a",
+    "rel_path": "Album A\\01 Liquid Night.m4a",
+    "sha256": "b185f3c7c8a293b0f0c7de1cbe8bc5583fc6e1da44c7e199f80ad9d0532d9b61",
+    "size_bytes": 626864,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "codec": "aac",
+    "codec_family": "lossy",
+    "is_lossy": true,
+    "bit_rate": 207002,
+    "sample_rate": 48000,
+    "channels": 2,
+    "channel_layout": "stereo",
+    "bits_per_sample": null,
+    "duration_s": 24.0,
+    "tags": {
+     "compatible_brands": "M4A isomiso2",
+     "encoder": "Lavf62.12.101",
+     "major_brand": "M4A ",
+     "minor_version": "512"
+    },
+    "probe_warnings": [
+     "LOSSY SOURCE (aac). Converting to WAV/FLAC is transcoding: it does not restore information removed by the encoder. Not eligible as Hi-Res / Apple Digital Masters source."
+    ],
+    "text_match": {
+     "status": "MATCHED_EXACT",
+     "confidence": 1.0,
+     "text_path": "E:\\PLAGIN_GPT_SUNO\\_work\\qa\\evidence_20261114_062547\\fx\\library\\Album A\\01 Liquid Night.txt"
+    }
+   },
+   "source_duration_s": 24.0,
+   "version_no": 1,
+   "version_mode": "SAFE_MASTER",
+   "version_status": "APPROVED",
+   "version_config_hash": "86785d943c1855c5",
+   "version_config": {
+    "allowed_rates": [
+     44100,
+     48000
+    ],
+    "app_version": "0.1.0",
+    "chain": {
+     "compressor": {
+      "attack_ms": 30.0,
+      "enabled": false,
+      "knee_db": 6.0,
+      "ratio": 1.5,
+      "release_ms": 250.0,
+      "threshold_db": -18.0
+     },
+     "dc_hpf": {
+      "enabled": false,
+      "freq_hz": 5.0
+     },
+     "eq": {
+      "bands": [],
+      "enabled": false
+     },
+     "gain": {
+      "enabled": true,
+      "gain_db": 6.92
+     },
+     "limiter": {
+      "ceiling_dbtp": -1.0,
+      "enabled": true,
+      "lookahead_ms": 1.5,
+      "release_ms": 80.0
+     },
+     "stereo": {
+      "bass_mono_below_hz": 0.0,
+      "enabled": false,
+      "width": 1.0
+     }
+    },
+    "mode": "SAFE_MASTER",
+    "proposal": {
+     "actions": [
+      {
+       "enabled": true,
+       "evidence": {
+        "integrated_lufs": -21.03,
+        "policy": "preset_window",
+        "preset_window": [
+         -14.0,
+         -10.0
+        ],
+        "true_peak_dbtp": -5.918
+       },
+       "note": "below preset window [-14.0, -10.0] -> raise to -14.0; capped from +7.03 to +6.92 dB so peak reduction stays <= 2.0 dB (protects transients)",
+       "problem": "level planning",
+       "remedy": "static gain +6.92 dB",
+       "risk": "louder output needs more peak control",
+       "settings": {
+        "enabled": true,
+        "gain_db": 6.92
+       },
+       "stage": "gain"
+      },
+      {
+       "enabled": true,
+       "evidence": {
+        "est_peak_reduction_db": 2.0
+       },
+       "problem": "true-peak safety",
+       "remedy": "true-peak limiter, ceiling -1.0 dBTP (verified after render)",
+       "risk": "audible only when reduction is large; measured in report",
+       "settings": {
+        "ceiling_dbtp": -1.0,
+        "enabled": true,
+        "lookahead_ms": 1.5,
+        "release_ms": 80.0
+       },
+       "stage": "limiter"
+      }
+     ],
+     "preset": "generic",
+     "preset_reason": "style uncertain/mixed -> generic (heuristic guesses are not used to pick aggressive presets)"
+    },
+    "repair_plan": null,
+    "source_sha256": "b185f3c7c8a293b0f0c7de1cbe8bc5583fc6e1da44c7e199f80ad9d0532d9b61",
+    "target_bits": 24
+   },
+   "version_integrated_lufs": -14.36,
+   "export_conversion": null,
+   "listening_signoff": false,
+   "approvals": [
+    {
+     "decision": "APPROVED",
+     "actor": "local-user",
+     "note": "evidence run",
+     "created_at": 1794626799.8770008
+    }
+   ],
+   "gap_after_s": 2.0
+  },
+  {
+   "track_number": 2,
+   "file": "02_02 Rain Code (1).wav",
+   "wav_sha256": "9f8970383009ce4be04c61bb4fb02cd556fad0c6e5122c5744153acd6e0bbefb",
+   "source": {
+    "path": "E:\\PLAGIN_GPT_SUNO\\_work\\qa\\evidence_20261114_062547\\fx\\library\\Album A\\02 Rain Code (1).m4a",
+    "rel_path": "Album A\\02 Rain Code (1).m4a",
+    "sha256": "34aefb6739260362d70c54f6e8b3cb488f93eec247db65073e5c2c11be8e36a4",
+    "size_bytes": 359037,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "codec": "aac",
+    "codec_family": "lossy",
+    "is_lossy": true,
+    "bit_rate": 141638,
+    "sample_rate": 48000,
+    "channels": 2,
+    "channel_layout": "stereo",
+    "bits_per_sample": null,
+    "duration_s": 20.0,
+    "tags": {
+     "compatible_brands": "M4A isomiso2",
+     "encoder": "Lavf62.12.101",
+     "major_brand": "M4A ",
+     "minor_version": "512"
+    },
+    "probe_warnings": [
+     "LOSSY SOURCE (aac). Converting to WAV/FLAC is transcoding: it does not restore information removed by the encoder. Not eligible as Hi-Res / Apple Digital Masters source."
+    ],
+    "text_match": {
+     "status": "NONE",
+     "confidence": 0.0,
+     "text_path": null
+    }
+   },
+   "source_duration_s": 20.0107,
+   "version_no": 1,
+   "version_mode": "SAFE_MASTER",
+   "version_status": "APPROVED",
+   "version_config_hash": "5b8f68a7adc8ac3a",
+   "version_config": {
+    "allowed_rates": [
+     44100,
+     48000
+    ],
+    "app_version": "0.1.0",
+    "chain": {
+     "compressor": {
+      "attack_ms": 30.0,
+      "enabled": false,
+      "knee_db": 6.0,
+      "ratio": 1.5,
+      "release_ms": 250.0,
+      "threshold_db": -18.0
+     },
+     "dc_hpf": {
+      "enabled": false,
+      "freq_hz": 5.0
+     },
+     "eq": {
+      "bands": [],
+      "enabled": false
+     },
+     "gain": {
+      "enabled": true,
+      "gain_db": 2.23
+     },
+     "limiter": {
+      "ceiling_dbtp": -1.0,
+      "enabled": true,
+      "lookahead_ms": 1.5,
+      "release_ms": 80.0
+     },
+     "stereo": {
+      "bass_mono_below_hz": 0.0,
+      "enabled": false,
+      "width": 1.0
+     }
+    },
+    "mode": "SAFE_MASTER",
+    "proposal": {
+     "actions": [
+      {
+       "enabled": false,
+       "evidence": {
+        "effective_bandwidth_hz": 22436.0
+       },
+       "problem": "lossy encoder bandwidth limit",
+       "remedy": "NONE - boosting 'air' above the cutoff would only add noise/artifacts",
+       "risk": "n/a",
+       "settings": null,
+       "stage": "eq"
+      },
+      {
+       "enabled": true,
+       "evidence": {
+        "integrated_lufs": -16.23,
+        "policy": "preset_window",
+        "preset_window": [
+         -14.0,
+         -10.0
+        ],
+        "true_peak_dbtp": -1.621
+       },
+       "note": "below preset window [-14.0, -10.0] -> raise to -14.0",
+       "problem": "level planning",
+       "remedy": "static gain +2.23 dB",
+       "risk": "louder output needs more peak control",
+       "settings": {
+        "enabled": true,
+        "gain_db": 2.23
+       },
+       "stage": "gain"
+      },
+      {
+       "enabled": true,
+       "evidence": {
+        "est_peak_reduction_db": 1.61
+       },
+       "problem": "true-peak safety",
+       "remedy": "true-peak limiter, ceiling -1.0 dBTP (verified after render)",
+       "risk": "audible only when reduction is large; measured in report",
+       "settings": {
+        "ceiling_dbtp": -1.0,
+        "enabled": true,
+        "lookahead_ms": 1.5,
+        "release_ms": 80.0
+       },
+       "stage": "limiter"
+      }
+     ],
+     "preset": "generic",
+     "preset_reason": "style uncertain/mixed -> generic (heuristic guesses are not used to pick aggressive presets)"
+    },
+    "repair_plan": null,
+    "source_sha256": "34aefb6739260362d70c54f6e8b3cb488f93eec247db65073e5c2c11be8e36a4",
+    "target_bits": 24
+   },
+   "version_integrated_lufs": -14.14,
+   "export_conversion": null,
+   "listening_signoff": false,
+   "approvals": [
+    {
+     "decision": "APPROVED",
+     "actor": "local-user",
+     "note": "evidence run",
+     "created_at": 1794626801.9724507
+    }
+   ],
+   "gap_after_s": 2.0
+  },
+  {
+   "track_number": 3,
+   "file": "03_02 Rain Code.wav",
+   "wav_sha256": "3010bfc3b5d329fdac55675456be26f3ee32de947b4bd405c6bc4510c7e346d6",
+   "source": {
+    "path": "E:\\PLAGIN_GPT_SUNO\\_work\\qa\\evidence_20261114_062547\\fx\\library\\Album A\\02 Rain Code.m4a",
+    "rel_path": "Album A\\02 Rain Code.m4a",
+    "sha256": "e2a3bdc38022983fe95b8c714cec83ad750d396ce1be63e7b89e39deabb52d1c",
+    "size_bytes": 700581,
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "codec": "aac",
+    "codec_family": "lossy",
+    "is_lossy": true,
+    "bit_rate": 278110,
+    "sample_rate": 48000,
+    "channels": 2,
+    "channel_layout": "stereo",
+    "bits_per_sample": null,
+    "duration_s": 20.0,
+    "tags": {
+     "compatible_brands": "M4A isomiso2",
+     "encoder": "Lavf62.12.101",
+     "major_brand": "M4A ",
+     "minor_version": "512"
+    },
+    "probe_warnings": [
+     "LOSSY SOURCE (aac). Converting to WAV/FLAC is transcoding: it does not restore information removed by the encoder. Not eligible as Hi-Res / Apple Digital Masters source."
+    ],
+    "text_match": {
+     "status": "NONE",
+     "confidence": 0.0,
+     "text_path": null
+    }
+   },
+   "source_duration_s": 20.0107,
+   "version_no": 1,
+   "version_mode": "SAFE_MASTER",
+   "version_status": "APPROVED",
+   "version_config_hash": "451c7d946facbacf",
+   "version_config": {
+    "allowed_rates": [
+     44100,
+     48000
+    ],
+    "app_version": "0.1.0",
+    "chain": {
+     "compressor": {
+      "attack_ms": 30.0,
+      "enabled": false,
+      "knee_db": 6.0,
+      "ratio": 1.5,
+      "release_ms": 250.0,
+      "threshold_db": -18.0
+     },
+     "dc_hpf": {
+      "enabled": false,
+      "freq_hz": 5.0
+     },
+     "eq": {
+      "bands": [],
+      "enabled": false
+     },
+     "gain": {
+      "enabled": true,
+      "gain_db": 1.3
+     },
+     "limiter": {
+      "ceiling_dbtp": -1.0,
+      "enabled": true,
+      "lookahead_ms": 1.5,
+      "release_ms": 80.0
+     },
+     "stereo": {
+      "bass_mono_below_hz": 0.0,
+      "enabled": false,
+      "width": 1.0
+     }
+    },
+    "mode": "SAFE_MASTER",
+    "proposal": {
+     "actions": [
+      {
+       "enabled": true,
+       "evidence": {
+        "integrated_lufs": -15.8,
+        "policy": "preset_window",
+        "preset_window": [
+         -14.0,
+         -10.0
+        ],
+        "true_peak_dbtp": -0.305
+       },
+       "note": "below preset window [-14.0, -10.0] -> raise to -14.0; capped from +1.80 to +1.30 dB so peak reduction stays <= 2.0 dB (protects transients)",
+       "problem": "level planning",
+       "remedy": "static gain +1.30 dB",
+       "risk": "louder output needs more peak control",
+       "settings": {
+        "enabled": true,
+        "gain_db": 1.3
+       },
+       "stage": "gain"
+      },
+      {
+       "enabled": true,
+       "evidence": {
+        "est_peak_reduction_db": 2.0
+       },
+       "problem": "true-peak safety",
+       "remedy": "true-peak limiter, ceiling -1.0 dBTP (verified after render)",
+       "risk": "audible only when reduction is large; measured in report",
+       "settings": {
+        "ceiling_dbtp": -1.0,
+        "enabled": true,
+        "lookahead_ms": 1.5,
+        "release_ms": 80.0
+       },
+       "stage": "limiter"
+      }
+     ],
+     "preset": "generic",
+     "preset_reason": "style uncertain/mixed -> generic (heuristic guesses are not used to pick aggressive presets)"
+    },
+    "repair_plan": null,
+    "source_sha256": "e2a3bdc38022983fe95b8c714cec83ad750d396ce1be63e7b89e39deabb52d1c",
+    "target_bits": 24
+   },
+   "version_integrated_lufs": -14.72,
+   "export_conversion": null,
+   "listening_signoff": false,
+   "approvals": [
+    {
+     "decision": "APPROVED",
+     "actor": "local-user",
+     "note": "evidence run",
+     "created_at": 1794626804.3113933
+    }
+   ],
+   "gap_after_s": 2.0
+  }
+ ],
+ "unresolved": [
+  "track 01: missing required field artist",
+  "track 01: AI disclosure unresolved: ai_generated_vocals",
+  "track 01: AI disclosure unresolved: ai_generated_music",
+  "track 01: AI disclosure unresolved: ai_generated_lyrics",
+  "track 01: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN",
+  "track 01: rights unresolved: user_confirms_commercial_rights=UNKNOWN",
+  "track 01: songwriter credits not entered (never inferred)",
+  "track 01: no listening sign-off for delivered version",
+  "track 01: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible",
+  "track 02: missing required field artist",
+  "track 02: AI disclosure unresolved: ai_generated_vocals",
+  "track 02: AI disclosure unresolved: ai_generated_music",
+  "track 02: AI disclosure unresolved: ai_generated_lyrics",
+  "track 02: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN",
+  "track 02: rights unresolved: user_confirms_commercial_rights=UNKNOWN",
+  "track 02: songwriter credits not entered (never inferred)",
+  "track 02: no listening sign-off for delivered version",
+  "track 02: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible",
+  "track 03: missing required field artist",
+  "track 03: AI disclosure unresolved: ai_generated_vocals",
+  "track 03: AI disclosure unresolved: ai_generated_music",
+  "track 03: AI disclosure unresolved: ai_generated_lyrics",
+  "track 03: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN",
+  "track 03: rights unresolved: user_confirms_commercial_rights=UNKNOWN",
+  "track 03: songwriter credits not entered (never inferred)",
+  "track 03: no listening sign-off for delivered version",
+  "track 03: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible",
+  "album: missing required field album_artist"
+ ],
+ "ffmpeg": "ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers"
+}

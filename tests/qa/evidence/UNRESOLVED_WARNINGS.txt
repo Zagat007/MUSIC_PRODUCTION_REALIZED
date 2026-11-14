@@ -1,0 +1,28 @@
+track 01: missing required field artist
+track 01: AI disclosure unresolved: ai_generated_vocals
+track 01: AI disclosure unresolved: ai_generated_music
+track 01: AI disclosure unresolved: ai_generated_lyrics
+track 01: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN
+track 01: rights unresolved: user_confirms_commercial_rights=UNKNOWN
+track 01: songwriter credits not entered (never inferred)
+track 01: no listening sign-off for delivered version
+track 01: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible
+track 02: missing required field artist
+track 02: AI disclosure unresolved: ai_generated_vocals
+track 02: AI disclosure unresolved: ai_generated_music
+track 02: AI disclosure unresolved: ai_generated_lyrics
+track 02: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN
+track 02: rights unresolved: user_confirms_commercial_rights=UNKNOWN
+track 02: songwriter credits not entered (never inferred)
+track 02: no listening sign-off for delivered version
+track 02: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible
+track 03: missing required field artist
+track 03: AI disclosure unresolved: ai_generated_vocals
+track 03: AI disclosure unresolved: ai_generated_music
+track 03: AI disclosure unresolved: ai_generated_lyrics
+track 03: rights unresolved: downloaded_while_on_paid_plan=UNKNOWN
+track 03: rights unresolved: user_confirms_commercial_rights=UNKNOWN
+track 03: songwriter credits not entered (never inferred)
+track 03: no listening sign-off for delivered version
+track 03: source is lossy (AAC/MP3): not Hi-Res / Apple Digital Masters eligible
+album: missing required field album_artist
