@@ -35,6 +35,7 @@ from srm.ingest.probe import ProbeResult, probe
 from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, read_text
 from srm.service.mastering import MasteringMixin
 from srm.service.repairs import RepairMixin
+from srm.service.albums import AlbumMixin
 
 AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", ".aiff", ".ogg", ".opus", ".alac"}
 TEXT_EXT = {".txt", ".md"}
@@ -76,7 +77,7 @@ def config_hash(cfg: dict) -> str:
     return hashlib.sha256(_jdump(cfg).encode("utf-8")).hexdigest()[:16]
 
 
-class Engine(MasteringMixin, RepairMixin):
+class Engine(MasteringMixin, RepairMixin, AlbumMixin):
     def __init__(self, project_dir: str | Path, *, create: bool = True):
         self.root = Path(project_dir).resolve()
         if not self.root.exists():

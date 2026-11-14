@@ -112,3 +112,30 @@ Defects found and fixed:
 Source separation: UNAVAILABLE (no licence-checked model installed); stem import + sum-vs-mix null test AVAILABLE.
 Acceptance #8 (no auto-repair on uncertain regions; untouched sections bit-identical; A-B + history): PASS.
 Budget gate M3: PASS — zero new charges, offline.
+
+## M4 — Albums, prompt association, metadata, distributor profiles, release export, validation
+
+External verification performed 2026-11-14 (WebFetch): Apple direct-delivery spec **VERIFIED**
+(WAV/ALAC/FLAC; 44.1–192 kHz; 16/24-bit; mono rejected → dual mono; ADM forbids lossy sources / bit-padding;
+Hi-Res needs ≥88.2 kHz); Spotify loudness **VERIFIED** (−14 LUFS is playback normalisation, not a delivery
+requirement; −1 dBTP, −2 dBTP for louder masters); Yandex AI disclosure **VERIFIED** (no audio spec on that page);
+Suno commercial rights page **VERIFIED** (rights for downloads while on paid plan; no copyright guarantee);
+DistroKid formats/AI credits and OpenAI help-center MCP article: **NOT VERIFIED** (HTTP 403 to automated fetch);
+OpenAI developers quickstart **VERIFIED** (remote HTTPS `/mcp`, streamable HTTP; "Add custom MCP server").
+
+Files: `srm/release/{profiles,metadata,validate}.py`, `srm/service/albums.py`, `srm/cli/extra.py`,
+`tests/integration/test_m4_release.py`.
+
+Implemented: album create/assign/reorder/gaps (sources never moved); human text-match decisions that survive
+rescans; validated metadata (ISRC/UPC syntax only, user-supplied; unknown → UNKNOWN; songwriters/rights/AI never
+inferred); export requires `confirm`; unapproved renders only with `allow_draft`; crash-safe build in
+`.building_*` then atomic rename to `vNNN`; package with WAV_MASTER, MP3_PREVIEW, FLAC_ARCHIVE, QA json/html,
+metadata csv/json, rights/AI checklist, cover-art checklist, processing manifest, UNRESOLVED_WARNINGS, album QA;
+independent validator from bytes (codec/bits/rate/channels via ffprobe, checksum, decode, duration vs source,
+silence, TP vs policy, loudness vs render, MP3 overs, FLAC==WAV sample-exact). Status is
+`DRAFT_NOT_RELEASE_READY` whenever any human gate/rights item/lossy-source note is open; the app never labels
+a package "approved".
+
+Tests: `pytest -q` → **57 passed** (exit 0). One test-expectation bug fixed (album order after reorder).
+Acceptance #4, #9, #10: PASS. Budget gate M4: PASS — zero new charges; network used only by the developer for
+documentation checks, never by the application.
