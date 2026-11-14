@@ -15,6 +15,7 @@ import numpy as np
 import soundfile as sf
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamable_http_client
+from PyInstaller.archive.readers import CArchiveReader
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = Path(tempfile.mkdtemp(prefix='build_acceptance_', dir=ROOT.parent / '_work'))
@@ -37,6 +38,12 @@ check('build_sources_match', all(hashlib.sha256((ROOT / p).read_bytes()).hexdige
                                 for p, sha in info['source_files_sha256'].items()))
 check('executable_hashes_match', all(hashlib.sha256((ROOT / 'dist' / p).read_bytes()).hexdigest().upper() == sha
                                     for p, sha in info['executables_sha256'].items()))
+archive = CArchiveReader(str(ROOT / 'dist/srm-gui/srm-gui.exe')).open_embedded_archive('PYZ.pyz')
+for module in ('srm.gui.app', 'srm.gui.studio'):
+    embedded = archive.extract(module)
+    source = ROOT / (module.replace('.', '/') + '.py')
+    current = compile(source.read_text('utf-8'), embedded.co_filename, 'exec', dont_inherit=True, optimize=0)
+    check('packaged_' + module + '_matches_source', embedded == current)
 lib = OUT / 'library' / '01 — Проверка'
 lib.mkdir(parents=True)
 fs = 48000

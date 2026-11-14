@@ -11,7 +11,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QColor, QDesktopServices, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -76,19 +76,41 @@ class Worker(QObject):
             self.failed.emit(f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=3)}")
 
 
+class CallbackDelivery(QObject):
+    """Always deliver worker callbacks on the GUI thread, including plain Python closures."""
+
+    def __init__(self, owner, done, fail, progress):
+        super().__init__(owner)
+        self.done_callback, self.fail_callback, self.progress_callback = done, fail, progress
+
+    @Slot(object)
+    def done(self, result):
+        if self.done_callback:
+            self.done_callback(result)
+
+    @Slot(str)
+    def fail(self, message):
+        self.fail_callback(message)
+
+    @Slot(dict)
+    def progress(self, value):
+        if self.progress_callback:
+            self.progress_callback(value)
+
+
 def run_bg(owner, fn, *args, on_done=None, on_fail=None, on_progress=None, **kwargs):
     th = QThread(owner)
     w = Worker(fn, *args, **kwargs)
     w.moveToThread(th)
     th.started.connect(w.run)
-    if on_done:
-        w.finished.connect(on_done)
-    w.failed.connect(on_fail or (lambda m: QMessageBox.critical(owner, APP_NAME, m)))
-    if on_progress:
-        w.progress.connect(on_progress)
+    delivery = CallbackDelivery(owner, on_done, on_fail or (lambda m: QMessageBox.critical(owner, APP_NAME, m)), on_progress)
+    w.finished.connect(delivery.done, Qt.QueuedConnection)
+    w.failed.connect(delivery.fail, Qt.QueuedConnection)
+    w.progress.connect(delivery.progress, Qt.QueuedConnection)
     w.finished.connect(th.quit)
     w.failed.connect(th.quit)
     th.finished.connect(th.deleteLater)
+    th.finished.connect(delivery.deleteLater)
     owner._threads.append((th, w))
     th.start()
     return w
@@ -113,13 +135,13 @@ class Waveform(QWidget):
 
     def paintEvent(self, ev):
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor("#121417"))
+        p.fillRect(self.rect(), QColor("#191e1f"))
         w, h = self.width(), self.height()
         if self.seg:
             x0 = self.seg[0] / self.duration * w
             p.fillRect(int(x0), 0, int(self.seg[1] / self.duration * w), h, QColor(60, 90, 120, 70))
         if self.peaks:
-            p.setPen(QPen(QColor("#4ea1ff"), 1))
+            p.setPen(QPen(QColor("#b8cbb7"), 1))
             n = len(self.peaks)
             for i, v in enumerate(self.peaks):
                 x = int(i * w / n)
@@ -181,16 +203,19 @@ class ABPlayer(QGroupBox):
         self.wave.update()
         self.combo.blockSignals(True)
         self.combo.clear()
-        for k, v in preview["clips"].items():
-            self.combo.addItem(f"{k}  ({v['measured_lufs']} LUFS, gain {v['matching_gain_db']:+.2f} dB)", k)
+        for k in preview["clips"]:
+            name = ('Оригинал' if k == 'source_decoded' else 'MP3-превью' if 'mp3' in k else 'Обработка')
+            self.combo.addItem(name, k)
         self.combo.blockSignals(False)
-        self.info.setText(f"Клипы выровнены к {preview['reference_lufs']} LUFS - громче не значит лучше")
+        self.info.setText("Громкость выровнена для честного сравнения")
         self._load(keep_pos=False)
 
     def _load(self, keep_pos: bool):
         if not self.player or self.combo.count() == 0:
             return
         k = self.combo.currentData()
+        if k not in self.clips:
+            return
         pos = self.player.position() if keep_pos else 0
         playing = self.player.playbackState() == self.player.PlaybackState.PlayingState
         self.player.setSource(QUrl.fromLocalFile(self.clips[k]))
@@ -358,6 +383,7 @@ class MainWindow(QMainWindow):
         if not self.engine:
             return
         rows = self.engine.list_tracks(self.selected_album())
+        self._library_rows = rows
         self.track_table.setRowCount(len(rows))
         for r, t in enumerate(rows):
             lv = t["latest_version"]
@@ -856,10 +882,12 @@ class MainWindow(QMainWindow):
 
 
 def main(argv: list[str] | None = None) -> int:
+    from srm.gui.studio import STUDIO_STYLE, StudioWindow
+
     argv = sys.argv[1:] if argv is None else argv
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    app.setStyleSheet(DARK)
-    w = MainWindow(argv[0] if argv else None)
+    app.setStyleSheet(STUDIO_STYLE)
+    w = StudioWindow(argv[0] if argv else None)
     w.show()
     return app.exec()
 

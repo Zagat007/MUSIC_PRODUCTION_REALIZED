@@ -2,6 +2,8 @@
   "checks": {
     "build_sources_match": "PASS",
     "executable_hashes_match": "PASS",
+    "packaged_srm.gui.app_matches_source": "PASS",
+    "packaged_srm.gui.studio_matches_source": "PASS",
     "frozen_scan": "PASS",
     "numbered_filename_fix_in_exe": "PASS",
     "frozen_mcp_health": "PASS",
@@ -15,7 +17,7 @@
     "frozen_gui_stays_running": "PASS",
     "frozen_gui_no_startup_exception": "PASS"
   },
-  "evidence_folder": "E:\\PLAGIN_GPT_SUNO\\_work\\build_acceptance_yh7fdu5k",
+  "evidence_folder": "E:\\PLAGIN_GPT_SUNO\\_work\\build_acceptance_hpu4n0nx",
   "live_chatgpt": "NOT VERIFIED",
   "listening_quality": "NOT VERIFIED"
 }

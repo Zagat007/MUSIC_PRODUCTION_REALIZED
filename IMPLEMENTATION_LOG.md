@@ -277,3 +277,33 @@ unchanged, GUI process running and no startup exception. Test servers and proces
 Live ChatGPT connection and listening quality remain **NOT VERIFIED**. No real-library audio was modified
 or reprocessed during this acceptance. Next stage: connect the plugin in ChatGPT and exercise a real chat
 request. Full Russian handoff: `docs/ACCEPTANCE_RU.md`. Budget gate: PASS (zero charges).
+
+## Focused studio interface — 2026-11-14
+
+Implemented `srm/gui/studio.py` as the default desktop front end over the existing engine and detailed GUI.
+Three primary screens: Music (album tree, clean track table, live counts), Audition (waveform, equal-level
+original/master/MP3 player, one-click conservative preparation, explicit listening/approval), Release (prepare
+remaining tracks, WAV+MP3 draft package, readable result and folder access). Manual DSP parameters, raw JSON,
+repair tables and full measurements remain behind "Все инструменты". New-library import creates a separate
+project in AppLocalDataLocation when needed. No cloud or additional dependency was added.
+
+Warm charcoal, ivory, champagne and sage palette; large headings, rounded summary cards, restrained
+navigation and plain Russian actions. Visual inspection on real cached library data at 1440x920 and 1200x800.
+
+Functional guards: changing tracks clears the old preview/approval target; approval binds to the exact
+auditioned track/version; album preparation skips existing RENDERED/APPROVED versions; draft export stays
+disabled until all tracks are prepared. Release album selection stays consistent with the library selection.
+Uncertain source types are not labelled lossless. Background work has an accessible stop button.
+
+GUI defect exposed and fixed: run_bg connected plain closures directly to worker signals, so UI callbacks
+could execute on the worker thread, leaving combo-box item data inconsistent. QObject/Slot delivery with
+explicit QueuedConnection now runs callbacks on the GUI thread. A regression test verifies thread identity.
+
+Validation: **76 passed in 313.06 s, exit 0** (`tests/qa/studio_regression_tests.txt`), Ruff PASS.
+Three new tests verify the simple default/advanced access, callback thread, and the complete audition ->
+approve -> prepare remaining album -> draft export path using generated audio. Both Windows executables
+rebuilt; **16 frozen-program checks PASS**, including exact equality of packaged GUI code objects with
+current source and GUI startup without exceptions. Build metadata refreshed in `tests/qa/windows_build_info.json`.
+Local launcher `E:\PLAGIN_GPT_SUNO\Suno Release Master.lnk` points to the new GUI and existing real-library project.
+
+Live ChatGPT connectivity and subjective audio quality remain NOT VERIFIED. Budget gate: PASS (zero charges).

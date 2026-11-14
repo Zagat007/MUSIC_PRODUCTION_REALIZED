@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+Focused studio UI: three steps (library, audition, release), warm dark styling, plain-language A/B player,
+one-click conservative preview, explicit listening approval, draft export and advanced tools on demand.
+Worker callbacks are delivered on the GUI thread; album preparation reuses existing rendered/approved versions.
 Real-library fixes: click detector absolute floor (fade-out false positives), like-for-like tempo ambiguity,
 LOW-confidence style hints no longer pick a loudness preset. analysis-1.3.
 

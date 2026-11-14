@@ -1,6 +1,6 @@
 ﻿{
-    "built_at_utc":  "2026-11-14T15:42:18.2187546Z",
-    "source_commit":  "eff0f90471906460cd688be4b64eb23e6208966a",
+    "built_at_utc":  "2026-11-14T16:00:03.0925696Z",
+    "source_commit":  "b42cfaca402965fd599c9148562c7741e0975c56",
     "source_files_sha256":  {
                                 "srm/__init__.py":  "D2ECA7BB879DACE123257B11DBC160900291B8F2EE755A33E76B1539852CDD8C",
                                 "srm/analysis/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
@@ -27,7 +27,8 @@
                                 "srm/dsp/quantize.py":  "46B7C869C4A1F44C6B7B2C88553E92B66BD39D3736B393E302643FE7CB4595BB",
                                 "srm/dsp/repair.py":  "C193F3C5028F328E783D883C5FFD11D8E2D9B06E3D497223BBB6B441BF11DFC8",
                                 "srm/gui/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
-                                "srm/gui/app.py":  "DD3CEFBC70CBAD6E88FF0E2AB25BB3E64B4806F7AC2A024BFE2869AEEC5186F0",
+                                "srm/gui/app.py":  "6866309016CF52E67695AB463056D5A637D3FCCDC750AF67EF2F10D21E91B018",
+                                "srm/gui/studio.py":  "524205FD5D71A298234DD41AD50DDD8B3D04444ACEA8466EB6C3F5ED2A6CE54C",
                                 "srm/ingest/__init__.py":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
                                 "srm/ingest/decode.py":  "C7FF26AA425CEC1C449EF0834AECC247D35BF1B744D3B2DC79D1EA5F97DB722B",
                                 "srm/ingest/probe.py":  "DCB921BB1DC62855A48A7C095628C6133006AF6ED62656A941553025EC6CA775",
@@ -45,7 +46,7 @@
                                 "srm/service/repairs.py":  "07B7B197503FDCE2B2059858136F198212D73279C43D199F80F9A147FFC605A9"
                             },
     "executables_sha256":  {
-                               "srm/srm.exe":  "34C6C2AD095A9F9BBDB610225CC25C81793D6B0061111CFC96345F7F6F1DF340",
-                               "srm-gui/srm-gui.exe":  "93156AA234FE11EC715C2B392C5B2F4648303486B00870D4CF00D95BEC11E13F"
+                               "srm/srm.exe":  "C08A7F8E4B2184B80E7B49DFAAAB274A40092727B5F48AF471A991B7DC3F5B3E",
+                               "srm-gui/srm-gui.exe":  "443BB39AB57B71EF78CC51367E0919266ED0DA72E876EF1ABBACE571BA3E5D20"
                            }
 }
