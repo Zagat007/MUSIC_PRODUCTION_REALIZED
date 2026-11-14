@@ -83,3 +83,32 @@ Defects found and fixed (root causes):
 Acceptance: #7 TP within ceiling on rendered bytes + real MP3 preview analysed (PASS); #8 bypass/identity,
 untouched-region and A-B path (PASS). Budget gate M2: PASS — zero new charges, offline.
 Not verified: subjective sound quality of any preset (requires listening).
+
+## M3 — Candidate artifact detection, localized repair, stems
+
+Files: `srm/dsp/repair.py` (artifact registry, LSAR interpolation, declip candidate, fades, regression checks),
+`srm/service/repairs.py` (repair plans, decisions, A-B repair previews, stem import/validation, separation
+capability), DB migration 3 (`repair_plans`), `tests/integration/test_m3_repair.py`.
+
+Policy implemented: AUTO only for HIGH-confidence clicks that pass regression checks **and** the user confirms the
+auto set; declip/fades always need approval; failed-check edits cannot be approved; RESTORE_AND_MASTER refuses to
+run without an approved plan; widespread clipping / dropouts / perceptual artifacts → NEEDS_SOURCE_REGENERATION_OR_STEMS
+or REQUIRES_LISTENING_REVIEW. Repairs are re-checked when applied during render and logged per edit.
+
+Tests: `pytest -q` → **50 passed** (exit 0).
+
+Defects found and fixed:
+1. Regression checks evaluated both channels while edits are per channel → false failures. Scoped per channel and
+   added an "other channels bit-identical" check.
+2. LSAR drift on bass-dominated material (AR(32) cannot carry long periods) → trend split: zero-phase low-pass over
+   a linearly bridged gap + LSAR on the residual.
+3. Flawed plausibility tests: RMS of a 0.6 ms region vs ±50 ms context (crest bias) and reflect padding that
+   itself looked like a click → replaced by HF-energy ratio, local-peak bound and detector run on real context.
+4. Declip offered on wall-to-wall clipping (would invent +8.9 dB peaks; checks rejected it) → widespread clipping
+   classified up front as NEEDS_SOURCE_REGENERATION_OR_STEMS.
+5. Clipping detector ignored clipped-then-attenuated audio (plateau below −0.3 dBFS) → floor −6 dBFS, MEDIUM
+   confidence below full scale. `ANALYSIS_VERSION` → analysis-1.2.
+
+Source separation: UNAVAILABLE (no licence-checked model installed); stem import + sum-vs-mix null test AVAILABLE.
+Acceptance #8 (no auto-repair on uncertain regions; untouched sections bit-identical; A-B + history): PASS.
+Budget gate M3: PASS — zero new charges, offline.

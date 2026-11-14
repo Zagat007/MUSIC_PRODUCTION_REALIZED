@@ -69,6 +69,12 @@ MIGRATIONS: list[str] = [
     """
     ALTER TABLE tracks ADD COLUMN gap_after_s REAL DEFAULT 2.0;
     """,
+    # 3: repair plans
+    """
+    CREATE TABLE repair_plans (
+        id INTEGER PRIMARY KEY, track_id INTEGER NOT NULL REFERENCES tracks(id), source_sha TEXT NOT NULL,
+        plan_json TEXT NOT NULL, status TEXT NOT NULL, created_at REAL);
+    """,
 ]
 
 

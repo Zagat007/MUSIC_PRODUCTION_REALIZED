@@ -34,6 +34,7 @@ from srm.ingest.decode import DecodeError, decode
 from srm.ingest.probe import ProbeResult, probe
 from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, read_text
 from srm.service.mastering import MasteringMixin
+from srm.service.repairs import RepairMixin
 
 AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", ".aiff", ".ogg", ".opus", ".alac"}
 TEXT_EXT = {".txt", ".md"}
@@ -58,6 +59,8 @@ def _jdump(o) -> str:
 
 
 def _json_default(o):
+    if isinstance(o, np.bool_):
+        return bool(o)
     if isinstance(o, (np.integer,)):
         return int(o)
     if isinstance(o, (np.floating,)):
@@ -73,7 +76,7 @@ def config_hash(cfg: dict) -> str:
     return hashlib.sha256(_jdump(cfg).encode("utf-8")).hexdigest()[:16]
 
 
-class Engine(MasteringMixin):
+class Engine(MasteringMixin, RepairMixin):
     def __init__(self, project_dir: str | Path, *, create: bool = True):
         self.root = Path(project_dir).resolve()
         if not self.root.exists():
@@ -753,6 +756,9 @@ def capabilities() -> dict:
         "defect_candidates": "AVAILABLE (candidates only)",
         "perceptual_ai_artifact_detection": "UNAVAILABLE (REQUIRES_LISTENING_REVIEW)",
         "source_separation": "UNAVAILABLE (no license-checked model installed; import Suno stems instead)",
+        "stem_import_validation": "AVAILABLE",
+        "repair_click_lsar": "AVAILABLE (approval / high-confidence auto with regression checks)",
+        "repair_declip": "AVAILABLE_EXPERIMENTAL (approval only)",
         "speech_denoise_full_mix": "DISABLED_BY_POLICY",
     }
     try:

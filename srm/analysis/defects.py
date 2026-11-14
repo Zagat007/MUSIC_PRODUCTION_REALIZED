@@ -58,8 +58,9 @@ def detect_clipping(x: np.ndarray, fs: int, max_items: int = 50) -> list[dict]:
     for ch in range(x.shape[1]):
         a = np.abs(x[:, ch])
         pk = a.max()
-        if pk < 10 ** (-0.3 / 20):
-            continue
+        if pk < 10 ** (-6.0 / 20):
+            continue  # flat tops below -6 dBFS are not treated as clipping evidence
+        below_fs = pk < 10 ** (-0.3 / 20)  # clipped-then-attenuated material (plateau below full scale)
         sig = x[:, ch]
         thr = pk * 0.99995
         runs = [(s, e) for s, e in _runs(sig >= thr) + _runs(sig <= -thr) if e - s >= 3]
@@ -72,9 +73,10 @@ def detect_clipping(x: np.ndarray, fs: int, max_items: int = 50) -> list[dict]:
             longest = max(e2 - s2 for s2, e2 in runs if s2 < e and e2 > s)
             sev = "SEVERE" if longest >= 12 else ("MODERATE" if longest >= 6 else "MINOR")
             res.append(_cand(
-                "hard_clipping", s / fs, e / fs, "HIGH" if longest >= 4 else "MEDIUM", sev,
+                "hard_clipping", s / fs, e / fs, "HIGH" if (longest >= 4 and not below_fs) else "MEDIUM", sev,
                 {"flat_top_samples": int(n_in), "longest_run_samples": int(longest),
-                 "level_dbfs": round(db(pk), 3), "total_flat_samples_channel": int(total)},
+                 "level_dbfs": round(db(pk), 3), "total_flat_samples_channel": int(total),
+                 "plateau_below_full_scale": bool(below_fs)},
                 "Review; optional cautious declip candidate. Lost peaks cannot be truly restored.",
                 channel=ch, auto=False))
     return res
