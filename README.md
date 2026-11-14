@@ -23,6 +23,7 @@ srm validate --project "..." --album "Album A"
 MCP для ChatGPT: `srm serve-mcp --project ...` (см. `docs/OPENAI_INTEGRATION.md`).
 
 ## Документация
+* `docs/ACCEPTANCE_RU.md` — актуальная приёмка: 73 теста и проверка Windows-сборок
 * `docs/USER_GUIDE_RU.md` — руководство пользователя
 * `docs/ARCHITECTURE.md`, `docs/DSP_DECISIONS.md`, `docs/AUDIO_VALIDATION.md`
 * `docs/RELEASE_PROFILES.md` — профили и проверенные требования площадок
@@ -35,4 +36,8 @@ MCP для ChatGPT: `srm serve-mcp --project ...` (см. `docs/OPENAI_INTEGRATIO
 scripts\setup_windows.ps1     # venv (Python 3.11) + зависимости
 scripts\test_windows.ps1      # pytest с логом
 scripts\build_windows.ps1     # PyInstaller: dist\srm\srm.exe, dist\srm-gui\srm-gui.exe
+python scripts\verify_windows_build.py  # Проверка собранных программ и локальных команд плагина
 ```
+
+Сборка сохраняет контрольные суммы исходников и программ в `dist/BUILD_INFO.json`.
+Проверка сборки использует сгенерированный звук и записывает результат в `tests/qa/build_acceptance.json`.

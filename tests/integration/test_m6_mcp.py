@@ -13,6 +13,15 @@ import httpx2  # noqa: E402
 import uvicorn  # noqa: E402
 
 
+def _local_get(url, **kwargs):
+    # Local acceptance must bypass system proxies (some Windows setups proxy loopback -> HTTP 503).
+    return httpx2.get(url, trust_env=False, **kwargs)
+
+
+def _local_post(url, **kwargs):
+    return httpx2.post(url, trust_env=False, **kwargs)
+
+
 def _free_port():
     s = socket.socket()
     s.bind(("127.0.0.1", 0))
@@ -38,7 +47,7 @@ def server(tmp_path_factory, fixture_lib):
     th.start()
     for _ in range(100):
         try:
-            if httpx2.get(f"http://127.0.0.1:{port}/health").status_code == 200:
+            if _local_get(f"http://127.0.0.1:{port}/health").status_code == 200:
                 break
         except Exception:
             time.sleep(0.1)
@@ -52,7 +61,7 @@ async def _call(url, token, calls, path="/mcp"):
     from mcp.client.streamable_http import streamable_http_client
 
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    async with httpx2.AsyncClient(headers=headers, timeout=600) as hc:
+    async with httpx2.AsyncClient(headers=headers, timeout=600, trust_env=False) as hc:
         async with streamable_http_client(url + path, http_client=hc) as streams:
             read, write = streams[0], streams[1]
             async with ClientSession(read, write) as s:
@@ -73,10 +82,10 @@ def run(coro):
 
 
 def test_unauthorized_fails_closed(server):
-    assert httpx2.post(server["url"] + "/mcp", json={}).status_code == 401
-    assert httpx2.post(server["url"] + "/mcp", json={}, headers={"Authorization": "Bearer nope"}).status_code == 401
-    assert httpx2.post(server["url"] + "/s/wrong/mcp", json={}).status_code == 401
-    assert httpx2.get(server["url"] + "/artifact/abc.def").status_code == 403
+    assert _local_post(server["url"] + "/mcp", json={}).status_code == 401
+    assert _local_post(server["url"] + "/mcp", json={}, headers={"Authorization": "Bearer nope"}).status_code == 401
+    assert _local_post(server["url"] + "/s/wrong/mcp", json={}).status_code == 401
+    assert _local_get(server["url"] + "/artifact/abc.def").status_code == 403
 
 
 def test_tools_reach_real_engine(server):
@@ -112,13 +121,13 @@ def test_tools_reach_real_engine(server):
     assert not res2[0]["is_error"], res2[0]["text"]
     prev = res2[0]["data"] or json.loads(res2[0]["text"])
     url = next(iter(prev["clips"].values()))["download"]["url"]
-    r = httpx2.get(url)
+    r = _local_get(url)
     assert r.status_code == 200 and r.content[:4] == b"RIFF"
     assert res2[1]["is_error"] and "CONFIRMATION_REQUIRED" in res2[1]["text"]
     assert not res2[2]["is_error"] and e.version(tid, vno)["status"] == "APPROVED"
     # tampered artifact token is rejected
     bad = url[:-1] + ("0" if url[-1] != "0" else "1")
-    assert httpx2.get(bad).status_code == 403
+    assert _local_get(bad).status_code == 403
 
 
 def test_capability_path_and_forbidden_root(server):
@@ -155,5 +164,5 @@ def test_export_requires_phrase_and_job_flow(server):
     out = res[1]["data"] or json.loads(res[1]["text"])
     assert out["status"] in ("DRAFT_NOT_RELEASE_READY", "FAILED") and out["technical"] == "PASS"
     dl = res[3]["data"] or json.loads(res[3]["text"])
-    r = httpx2.get(dl["url"])
+    r = _local_get(dl["url"])
     assert r.status_code == 200 and r.content[:4] == b"RIFF"

@@ -249,3 +249,31 @@ Sample master — 24 — STATIC MERCY (12 × WAV, lossless): SAFE_MASTER v002, g
 no limiting engaged, album spread 2.3 → 1.1 LU, all technical checks PASS; draft export
 `DRAFT_NOT_RELEASE_READY` (109 open human gates: approvals, artist, AI disclosure, rights, credits, listening).
 Subjective quality: NOT VERIFIED.
+
+## Codex acceptance of Claude's implementation — 2026-11-14
+
+Full current regression: **73 passed in 416.93 s, exit 0**, including all four real MCP tests and the GUI
+workflow. Log: `tests/qa/codex_acceptance_tests.txt`. Ruff: PASS.
+
+The first run had 69 PASS / 4 FAIL: local HTTP requests inherited system proxy behavior and returned 503.
+A minimal local HTTP server reproduced 503 with `trust_env=True` and 200 with `trust_env=False`.
+Local test clients now explicitly bypass proxy settings; Windows settings were not changed.
+
+Both executables were stale relative to the latest fixes and have been rebuilt. The build script now
+selects the project venv, checks build dependencies without an automatic pip install, and records source
+and executable SHA-256 values. See `tests/qa/windows_build_info.json` and `dist/BUILD_INFO.json`.
+
+The initial rebuilt GUI failed to import QtCore: PyInstaller selected an incompatible `icuuc.dll` from
+Codex's bundled Poppler tools on PATH. PE import/export inspection identified missing ICU entry points;
+loading with Windows ICU succeeded. The builder child process now filters `dependencies/native` PATH
+entries. After rebuilding, no foreign ICU is bundled and QtCore loads. The GUI launch check now also
+rejects traceback/import/DLL errors; process liveness alone previously accepted an error dialog.
+
+Frozen-program acceptance: **14 PASS** (`tests/qa/build_acceptance.json`): source/executable hashes,
+scan, filename numbering, MCP health, unauthenticated rejection, 18 tools, generated preview downloaded as
+real WAV, confirmation guard, rendered result persisted in shared DB, analysis-1.3 present, input hash
+unchanged, GUI process running and no startup exception. Test servers and processes were terminated.
+
+Live ChatGPT connection and listening quality remain **NOT VERIFIED**. No real-library audio was modified
+or reprocessed during this acceptance. Next stage: connect the plugin in ChatGPT and exercise a real chat
+request. Full Russian handoff: `docs/ACCEPTANCE_RU.md`. Budget gate: PASS (zero charges).
