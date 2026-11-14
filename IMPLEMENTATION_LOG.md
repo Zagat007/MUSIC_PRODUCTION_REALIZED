@@ -1,0 +1,57 @@
+# IMPLEMENTATION_LOG — Suno Release Master
+
+Specification: `docs/SPEC_v1_1.md` (v1.1 "Zero-cost edition", supersedes v1.0 — adds zero-cost/offline constraint).
+Status vocabulary: PASS / FAIL / NOT VERIFIED.
+
+## M0 — Environment, decisions, zero-cost audit (2026-11-14)
+
+Environment (inspected, not assumed):
+- Windows 11 Pro 10.0.26300 x64, 12 logical CPUs, ~62 GB free on E:.
+- Python 3.14.4 (default) and **3.11** (used: spec targets 3.11/3.12; venv `../.venv`).
+- FFmpeg/ffprobe **8.1.1 gyan.dev full build** on PATH: `--enable-gpl --enable-version3`, libsoxr, libmp3lame, native aac/alac/flac.
+- git 2.56. No `uv`.
+- Python deps (pinned in `requirements-lock.txt`): numpy 2.4.6, scipy 1.17.1, soundfile 0.14.0 (libsndfile, LGPL),
+  pyloudnorm 0.2.0 (MIT, used only as test cross-check), PySide6 6.12.0 (LGPL-3), mcp 2.3.0 (MIT; `FastMCP` renamed
+  `MCPServer` in v2 — verified in installed source), starlette/uvicorn (BSD), pytest, ruff.
+
+Decisions:
+- Package name `srm` (spec's `app/` renamed to avoid a generic top-level name); DSP engine has no GUI/MCP imports.
+- No librosa/numba: tempo/onset implemented with SciPy STFT (fewer heavy deps, CPU-only).
+- Loudness: own BS.1770-4 implementation (arbitrary-rate K-weighting from libebur128 prototype), cross-validated
+  against pyloudnorm and FFmpeg `ebur128` in tests.
+- True peak: 4x (fs<96k) / 2x polyphase, 64-tap/phase Kaiser(9) sinc. Cross-checked analytically and vs FFmpeg.
+- FFmpeg is **not bundled** (the local build is GPL); the app locates a user-installed free build (PATH,
+  `SRM_FFMPEG`, or `tools/ffmpeg/`). See LICENSE-THIRD-PARTY.md.
+- Essentia (AGPL) / Discogs weights (CC BY-NC-SA) **not bundled**; heuristic style fallback; adapter reports UNAVAILABLE.
+- Demucs / DeepFilterNet not installed (maintenance + licence + "no speech denoise on full mix" policy).
+
+Zero-cost audit (M0): all core dependencies are free/open-source; no account, API key, payment, cloud or network
+access is required by the core. Budget gate M0: **PASS — zero new charges**.
+
+Known unknowns: official distributor/OpenAI docs verification (scheduled M4/M6, browser availability permitting);
+Windows .exe packaging (M5/M7).
+
+## M1 — Ingest, analysis, conversion, versions, CLI, reports
+
+Files: `srm/core/{tools,paths,db}.py`, `srm/ingest/{probe,decode,textmatch}.py`,
+`srm/analysis/{loudness,truepeak,metrics,tempo,genre,defects,analyze,report}.py`, `srm/dsp/{quantize,convert}.py`,
+`srm/service/engine.py`, `srm/cli/main.py`, `tests/audio_fixtures/make_fixtures.py`, `tests/{conftest,unit/*,integration/*}`.
+
+Tests: `..\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` → **28 passed** (exit 0).
+
+Defects found and fixed during M1 (root causes):
+1. Click detector flagged synthetic drum/hat onsets → added HF-isolation test (residual must fall back to pre-event
+   level) + sustained-onset rejection. Now: 0 false positives on music fixtures; detects clear clicks.
+   Known miss: click masked by a hi-hat burst (documented limitation, test asserts it explicitly).
+2. Clipping detector treated a full-scale alternating tone as one flat run (used |x|) → sign-aware runs.
+3. Tempo locked to 1/3 tempo → log-Gaussian prior; candidate list now includes top distinct periodicity peaks
+   with half/double readings (172 BPM fixture lists 114.7 primary + 86.5 + 173.1 → ambiguity flagged).
+4. True-peak filter change briefly gave +12 dB (SciPy already applies the ×up gain to custom filters) → fixed;
+   analytic case −6.021 vs −6.0206 dBTP.
+5. Abrupt start/end false positives on short fades → compare first/last 10 ms with adjacent 40 ms (ramp detection).
+
+Acceptance items touched: #2 source hashes unchanged (PASS, test_sources_untouched), #3 AAC vs ALAC (PASS),
+#4 exported WAV probed from bytes (PASS), #5 CLI path (PASS), #7 TP cross-check (PASS).
+Budget gate M1: PASS — zero new charges, no network.
+
+Next: M2 mastering chain.

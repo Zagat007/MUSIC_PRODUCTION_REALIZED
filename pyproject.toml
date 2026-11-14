@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "suno-release-master"
+version = "0.1.0"
+description = "Offline-first audio QA, conservative mastering and release packaging for Suno-generated music"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Proprietary-or-TBD (see LICENSE-THIRD-PARTY.md for dependencies)" }
+dependencies = [
+  "numpy>=2.0,<3",
+  "scipy>=1.13,<2",
+  "soundfile>=0.12,<1",
+  "pyloudnorm>=0.1.1",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.7,<7"]
+mcp = ["mcp>=2.3,<3", "uvicorn>=0.30", "starlette>=0.40"]
+dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6"]
+
+[project.scripts]
+srm = "srm.cli.main:main"
+srm-gui = "srm.gui.app:main"
+srm-mcp = "srm.mcp_server.server:main"
+
+[tool.setuptools.packages.find]
+include = ["srm*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: long-running batch tests", "gui: requires PySide6 offscreen"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E741", "B008", "UP038", "E501", "B905", "UP031"]
