@@ -1,6 +1,6 @@
 # Build Windows executables with PyInstaller (onedir). FFmpeg is NOT bundled (GPL build); the app finds it on
 # PATH, via SRM_FFMPEG/SRM_FFPROBE, or in tools\ffmpeg\ next to the repository.
-param([ValidateSet('all', 'cli', 'gui')][string]$Target = 'all', [string]$DistPath = 'dist')
+param([ValidateSet('all', 'cli', 'gui', 'versus')][string]$Target = 'all', [string]$DistPath = 'dist')
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
@@ -31,7 +31,17 @@ if ($Target -in @('all', 'gui')) {
     --collect-submodules srm scripts\srm_gui_entry.py
 if ($LASTEXITCODE -ne 0) { throw "GUI build failed" }
 }
+if ($Target -in @('all', 'versus')) {
+    $runningVersus = Get-Process -Name srm-versus -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -eq "$distRoot\srm-versus\srm-versus.exe"
+    }
+    if ($runningVersus) { throw "The comparison tool is running. Close it or build to a separate folder." }
+& $py -c $builder --noconfirm --clean --distpath $distRoot --name srm-versus --windowed --paths $root `
+    --collect-submodules srm scripts\srm_versus_entry.py
+if ($LASTEXITCODE -ne 0) { throw "Versus build failed" }
+}
 Copy-Item LICENSE-THIRD-PARTY.md $distRoot -Force
+if (Test-Path docs\VERSUS_GUIDE_RU.md) { Copy-Item docs\VERSUS_GUIDE_RU.md $distRoot -Force }
 $sourceHashes = [ordered]@{}
 Get-ChildItem -LiteralPath "$root\srm" -Filter *.py -Recurse | Sort-Object FullName | ForEach-Object {
     $relative = $_.FullName.Substring($root.Length + 1).Replace('\', '/')
@@ -45,6 +55,10 @@ $buildRecord = [ordered]@{
         'srm/srm.exe' = (Get-FileHash -LiteralPath "$distRoot\srm\srm.exe" -Algorithm SHA256).Hash
         'srm-gui/srm-gui.exe' = (Get-FileHash -LiteralPath "$distRoot\srm-gui\srm-gui.exe" -Algorithm SHA256).Hash
     }
+}
+if (Test-Path "$distRoot\srm-versus\srm-versus.exe") {
+    $buildRecord.executables_sha256['srm-versus/srm-versus.exe'] =
+        (Get-FileHash -LiteralPath "$distRoot\srm-versus\srm-versus.exe" -Algorithm SHA256).Hash
 }
 $buildRecord | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath "$distRoot\BUILD_INFO.json" -Encoding UTF8
 Write-Host "Built: $distRoot\srm\srm.exe and $distRoot\srm-gui\srm-gui.exe"

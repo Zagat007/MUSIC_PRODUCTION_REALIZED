@@ -154,6 +154,7 @@ class StudioWindow(MainWindow):
             self.nav_buttons.append(b)
             side.addWidget(b)
         side.addStretch()
+        side.addWidget(button('Сравнение версий', self.open_versus, 'Quiet'))
         side.addWidget(button('Все инструменты', lambda: self.go(3), 'Quiet'))
         self.open_button = button('Открыть другой проект', self.pick_project, 'Quiet')
         side.addWidget(self.open_button)
@@ -478,6 +479,16 @@ class StudioWindow(MainWindow):
         self.album_combo.blockSignals(False)
         self.refresh_tracks()
         self.refresh_overview()
+
+    def open_versus(self):
+        """Blind comparison of several versions of one song (separate window, own saved state)."""
+        from srm.versus.gui import VersusWindow
+
+        if getattr(self, '_versus', None) is None or not self._versus.isVisible():
+            self._versus = VersusWindow()
+        self._versus.show()
+        self._versus.raise_()
+        self._versus.activateWindow()
 
     def _reset_listening(self):
         """Forget the prepared audition: nothing prepared for one track/project may be signed off for another."""

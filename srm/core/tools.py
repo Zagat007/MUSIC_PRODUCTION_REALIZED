@@ -37,9 +37,15 @@ def _candidate(name: str) -> str | None:
     env = os.environ.get(f"SRM_{name.upper()}")
     if env and Path(env).is_file():
         return env
-    local = Path(__file__).resolve().parents[2] / "tools" / "ffmpeg" / f"{name}.exe"
-    if local.is_file():
-        return str(local)
+    import sys
+
+    # A copy shipped next to the program wins over PATH: tools\ffmpeg beside the sources, beside the
+    # executable, or one level above it (the folder that holds srm-gui\ and srm-versus\).
+    exe_dir = Path(sys.executable).resolve().parent
+    for base in (Path(__file__).resolve().parents[2], exe_dir, exe_dir.parent):
+        local = base / "tools" / "ffmpeg" / f"{name}.exe"
+        if local.is_file():
+            return str(local)
     return shutil.which(name)
 
 

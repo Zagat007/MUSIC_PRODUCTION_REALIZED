@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+Blind comparison of song versions (`srm/versus`, `srm-versus.exe`, button in the studio sidebar):
+groups of 2+ versions found by file name, technical check with admission rules (shorter than two
+minutes, corrupt, exact SHA-256 duplicates), random blind labels A/B/C/..., full round for 2-5 versions
+and a two-stage tournament above that, gap-free switching at the same position with playback-only
+loudness matching, 12 weighted criteria, technical and overall winner with confidence, final A/B on a
+near tie, recorded manual override, TXT/CSV/JSON report, confirmed apply (rename, move to album,
+`_ОТЛОЖЕНО_ВЕРСИИ`) that never deletes or overwrites, state saved after every step.
+User guide: docs/VERSUS_GUIDE_RU.md. FFmpeg may also be shipped in `tools/ffmpeg` beside the program.
+
 Audit fixes (independent review of f412904; regression tests in tests/integration/test_audit_regressions.py):
 - Listening: a prepared audition is dropped on project switch (track ids repeat across projects), so an
   unheard version can no longer be signed off. The latest approval wins and supersedes the older one.
