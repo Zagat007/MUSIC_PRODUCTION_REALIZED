@@ -38,6 +38,7 @@ from srm.ingest.textmatch import match_texts, norm_title, parse_prompt_text, rea
 from srm.service.albums import AlbumMixin
 from srm.service.artwork import ArtworkMixin
 from srm.service.mastering import MasteringMixin
+from srm.service.pipeline import PipelineMixin
 from srm.service.repairs import RepairMixin
 
 AUDIO_EXT = {".m4a", ".mp4", ".aac", ".wav", ".wave", ".flac", ".mp3", ".aif", ".aiff", ".ogg", ".opus", ".alac"}
@@ -81,7 +82,7 @@ def config_hash(cfg: dict) -> str:
     return hashlib.sha256(_jdump(cfg).encode("utf-8")).hexdigest()[:16]
 
 
-class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
+class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin, PipelineMixin):
     def __init__(self, project_dir: str | Path, *, create: bool = True):
         self.root = Path(project_dir).resolve()
         if not self.root.exists():
@@ -255,13 +256,20 @@ class Engine(MasteringMixin, RepairMixin, AlbumMixin, ArtworkMixin):
         trow = self.db.one("SELECT id FROM tracks WHERE source_id=?", (sid,))
         if not trow:
             parent_rel = Path(rel).parent
-            album_name = str(parent_rel).replace("\\", " / ") if str(parent_rel) != "." else "Unsorted"
+            if str(parent_rel) != ".":
+                album_name = str(parent_rel).replace("\\", " / ")
+            else:  # audio directly in the opened folder: that folder is the album
+                album_name = base.name if self.name_root_album_by_folder else "Unsorted"
             album_id = self._ensure_album(album_name, str(ap.parent))
             num, clean = split_track_number(ap.stem)
-            if pr.tags.get("title"):
+            # A numbered file name ("07 — RED LIGHT SOCIETY.mp3") is the user's own ordering and title and
+            # wins over an embedded tag, which often still carries the generator's old name and number.
+            if num is not None:
+                title, src_kind = clean, "filename_numbered"
+            elif pr.tags.get("title"):
                 title, src_kind = pr.tags["title"], "tag"
             else:
-                title, src_kind = clean, ("filename_numbered" if num is not None else "filename")
+                title, src_kind = clean, "filename"
             meta = {"title_source": src_kind, "source_filename": ap.name}
             if num is not None:
                 meta["filename_track_number"] = num

@@ -126,3 +126,21 @@ def make_device(core: MixerCore, parent=None):
     dev = MixerDevice()
     dev.open(QIODevice.ReadOnly)
     return dev
+
+
+def start_sink(core: MixerCore, parent=None):
+    """Open the default audio output and let it pull from ``core``. Returns (sink, device)."""
+    from PySide6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
+
+    dev = QMediaDevices.defaultAudioOutput()
+    if dev.isNull():
+        raise RuntimeError("устройство вывода звука не найдено")
+    fmt = QAudioFormat()
+    fmt.setSampleRate(core.rate)
+    fmt.setChannelCount(2)
+    fmt.setSampleFormat(QAudioFormat.Int16)
+    sink = QAudioSink(dev, fmt, parent)
+    sink.setBufferSize(core.rate * 4 // 12)  # ~80 ms: switching is heard almost at once
+    device = make_device(core, parent)
+    sink.start(device)
+    return sink, device

@@ -143,13 +143,13 @@ class Waveform(QWidget):
 
     def paintEvent(self, ev):
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor("#191e1f"))
+        p.fillRect(self.rect(), QColor("#12141a"))
         w, h = self.width(), self.height()
         if self.seg:
             x0 = self.seg[0] / self.duration * w
             p.fillRect(int(x0), 0, int(self.seg[1] / self.duration * w), h, QColor(60, 90, 120, 70))
         if self.peaks:
-            p.setPen(QPen(QColor("#b8cbb7"), 1))
+            p.setPen(QPen(QColor("#d8c08a"), 1))
             n = len(self.peaks)
             for i, v in enumerate(self.peaks):
                 x = int(i * w / n)
@@ -941,12 +941,20 @@ class MainWindow(QMainWindow):
 
 
 def main(argv: list[str] | None = None) -> int:
-    from srm.gui.studio import STUDIO_STYLE, StudioWindow
+    from srm.gui.theme import LUX_STYLE
 
     argv = sys.argv[1:] if argv is None else argv
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    app.setStyleSheet(STUDIO_STYLE)
-    w = StudioWindow(argv[0] if argv else None)
+    app.setStyleSheet(LUX_STYLE)
+    target = argv[0] if argv else None
+    if target and (Path(target) / "srm_project.sqlite").is_file():
+        from srm.gui.studio import StudioWindow  # an existing project folder opens the detailed tools
+
+        w = StudioWindow(target)
+    else:
+        from srm.gui.flow import FlowWindow  # default: the step-by-step release workflow
+
+        w = FlowWindow(target)
     w.show()
     return app.exec()
 

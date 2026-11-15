@@ -33,8 +33,10 @@ class MasteringMixin:
 
         a = self.get_analysis(track_id) or self.analyze_track(track_id)
         t = self.track(track_id)
-        if t["style_override"] and not preset:
-            preset = t["style_override"]
+        if not preset:
+            # The declared style decides the preset: the track's own choice or prompt file, then the
+            # album's style. Without a declared style the neutral preset is used.
+            preset = self.resolve_style(t)[0]
         prop = propose(a["measurements"], mode=mode, preset=preset, ceiling_dbtp=ceiling_dbtp,
                        target_lufs=target_lufs, loudness_policy=loudness_policy, album_offset_db=album_offset_db)
         if chain_overrides:

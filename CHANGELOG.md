@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+New main window (`srm/gui/flow.py`) and album pipeline (`srm/service/pipeline.py`): open a folder and
+every album appears (an album folder gives one album; `_*` and service folders are skipped); six ordered
+stages - analysis, versions, repair, mastering, listening, release - each with its own button, plus AUTO
+for one album or for all. Automatic technical choice among versions of a song (losers are excluded from
+the release, never moved), repair that leaves rhythm alone, preset from the declared album style
+(`СТИЛЬ:` line, album name or the user's choice), cover taken from `COVER.png`, instant original/master
+player, plain-language log. One gold-on-graphite theme for all windows (`srm/gui/theme.py`).
+
 Blind comparison of song versions (`srm/versus`, `srm-versus.exe`, button in the studio sidebar):
 groups of 2+ versions found by file name, technical check with admission rules (shorter than two
 minutes, corrupt, exact SHA-256 duplicates), random blind labels A/B/C/..., full round for 2-5 versions

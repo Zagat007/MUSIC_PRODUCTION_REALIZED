@@ -82,12 +82,12 @@ class WaveView(QWidget):
     def paintEvent(self, ev):  # noqa: N802
         p = QPainter(self)
         w, h = self.width(), self.height()
-        p.fillRect(self.rect(), QColor("#191e1f"))
+        p.fillRect(self.rect(), QColor("#12141a"))
         if self.loop:
             p.fillRect(int(self.loop[0] * w), 0, max(2, int((self.loop[1] - self.loop[0]) * w)), h,
                        QColor(217, 185, 151, 45))
         if self.peaks:
-            p.setPen(QPen(QColor("#b8cbb7"), 1))
+            p.setPen(QPen(QColor("#d8c08a"), 1))
             n = len(self.peaks)
             for i, v in enumerate(self.peaks):
                 x = int(i * w / n)
@@ -756,7 +756,7 @@ class VersusWindow(QMainWindow):
             b.setCheckable(True)
             b.setMinimumHeight(54)
             b.setToolTip(f"Клавиша {i + 1}" if i < 9 else "")
-            b.setStyleSheet("font-size:20pt; font-weight:600;")
+            b.setObjectName("Choice")
             self.version_buttons[lab] = b
             self.version_row.addWidget(b)
         self.rating_table.setRowCount(len(C.CRITERIA) if labels else 0)

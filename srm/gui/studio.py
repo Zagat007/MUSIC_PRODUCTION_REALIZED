@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from srm.gui.app import MainWindow, run_bg
+from srm.gui.theme import LUX_STYLE
 
 STUDIO_STYLE = """
 QWidget { background:#121516; color:#e9e7e0; font-family:'Segoe UI'; font-size:10pt; }
@@ -75,6 +76,7 @@ QMenuBar { background:#191d1e; color:#a9b3ae; }
 QMenu { background:#202728; border:1px solid #3a4441; }
 QToolTip { background:#303a36; color:#f2e9df; border:1px solid #617367; padding:8px; }
 """
+STUDIO_STYLE = LUX_STYLE  # one theme for every window (the block above is the retired green palette)
 
 
 def label(text, kind=None):
@@ -202,7 +204,7 @@ class StudioWindow(MainWindow):
         self.cover_image = label('Обложка\nальбома', 'Muted')
         self.cover_image.setAlignment(Qt.AlignCenter)
         self.cover_image.setFixedSize(148, 148)
-        self.cover_image.setStyleSheet('background:#121718; border-radius:8px; border:1px solid #39433f;')
+        self.cover_image.setStyleSheet('background:#181b23; border-radius:10px; border:1px solid #2b303c;')
         art_column = QVBoxLayout()
         art_column.addWidget(self.cover_image)
         self.cover_versions = QComboBox()

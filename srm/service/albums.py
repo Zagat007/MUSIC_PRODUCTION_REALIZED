@@ -124,7 +124,8 @@ class AlbumMixin:
         aid = self.album_id(album)
         arow = self.db.one("SELECT * FROM albums WHERE id=?", (aid,))
         ameta = json.loads(arow["metadata_json"] or "{}")
-        tracks = self.list_tracks(aid)
+        # Tracks kept out of the release (e.g. the weaker versions of a song) are not exported.
+        tracks = [t for t in self.list_tracks(aid) if not t["metadata"].get("release_excluded")]
         if not tracks:
             raise EngineError("album has no tracks")
         self._check_disk()
