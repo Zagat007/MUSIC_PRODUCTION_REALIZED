@@ -26,6 +26,7 @@ dev = ["pytest>=8", "ruff>=0.5", "pyinstaller>=6"]
 srm = "srm.cli.main:main"
 srm-gui = "srm.gui.app:main"
 srm-versus = "srm.versus.gui:main"
+srm-release = "srm.auto.gui:main"
 srm-mcp = "srm.mcp_server.server:main"
 
 [tool.setuptools.packages.find]

@@ -377,6 +377,20 @@ def test_grouping_rules(tmp_path):
         (loose / name).write_bytes(b"0")
     assert [(g["name"], len(g["files"])) for g in C.discover_groups(loose)] == [("Разное", 3)]
     assert C.labels_for(28)[-3:] == ["Z", "AA", "AB"]
+    # an album track list (different songs, one file each) is not one song with many versions
+    release = tmp_path / "01 — AFTER THE LAST LIGHT"
+    for name in ["01 — CONFESSION AT DAWN.mp3", "02 — DAWN WITHOUT MERCY.mp3", "03 — NO MORNING.m4a",
+                 "09 — GOLDEN GRAVITY.mp3", "10 — GOLDEN SILENCE.mp3", "12 — SILVER LINE.wav"]:
+        (release / name).parent.mkdir(parents=True, exist_ok=True)
+        (release / name).write_bytes(b"0")
+    assert C.discover_groups(release) == []
+    assert C.count_audio(release) == 6
+    tracks = C.discover_groups(release, singles=True)  # the interface lists every track of the album
+    assert [g["name"] for g in tracks][:2] == ["CONFESSION AT DAWN", "DAWN WITHOUT MERCY"]
+    assert len(tracks) == 6 and all(len(g["files"]) == 1 for g in tracks)
+    mixed = {g["name"]: len(g["files"]) for g in C.discover_groups(album, singles=True)}
+    assert mixed == {"Заря": 2, "Ночь": 3, "Одна": 1}
+    assert [(g["name"], len(g["files"])) for g in C.discover_groups(loose, singles=True)] == [("Разное", 3)]
 
 
 # ---------------------------------------------------------------- interface

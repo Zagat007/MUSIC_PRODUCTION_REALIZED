@@ -191,8 +191,13 @@ def stage_gain(x, fs, p):
 
 def true_peak_limit(x: np.ndarray, fs: int, ceiling_dbtp: float = -1.0, lookahead_ms: float = 1.5,
                     release_ms: float = 80.0, max_iter: int = 6, block: int = 32,
-                    internal_margin_db: float = 0.1) -> tuple[np.ndarray, dict]:
+                    internal_margin_db: float = 0.1, env: np.ndarray | None = None,
+                    verify: bool = True) -> tuple[np.ndarray, dict]:
     """Look-ahead true-peak limiter with measured verification.
+
+    ``env`` may pass a precomputed true-peak envelope of ``x`` (it scales linearly with a gain, so a
+    loudness search measures it once). ``verify=False`` does a single pass without re-measuring the
+    output - only for estimates, never for the file that is written.
 
     Gain curve g <= ceiling / interpolated_peak at every sample (sliding-min + causal box average),
     with exponential release. Output true peak is re-measured; if any over remains, the internal
@@ -202,7 +207,7 @@ def true_peak_limit(x: np.ndarray, fs: int, ceiling_dbtp: float = -1.0, lookahea
     c = 10 ** ((ceiling_dbtp - internal_margin_db) / 20)
     n = x.shape[0]
     L = max(1, int(round(lookahead_ms / 1000 * fs)))
-    env = peak_envelope(x, fs)
+    env = peak_envelope(x, fs) if env is None else env
     margin = 1.0
     info = {"iterations": 0}
     info["internal_margin_db"] = internal_margin_db
@@ -235,6 +240,10 @@ def true_peak_limit(x: np.ndarray, fs: int, ceiling_dbtp: float = -1.0, lookahea
         D[D < 1e-12] = 0.0
         g = 1.0 - D
         y = x * g[:, None]
+        if not verify:
+            info["iterations"] = 1
+            tp = float((env * g).max())  # estimate only
+            break
         tp = float(peak_envelope(y, fs).max())
         info["iterations"] = it + 1
         if tp <= c * (1 + 1e-6):

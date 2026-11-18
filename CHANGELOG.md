@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+One-click release window (`srm/auto`, `srm-release`, `python -m srm.auto.gui`): add songs, press a genre
+button, get release files. Ten genre mastering recipes for the author's styles (`srm/auto/genres.py`, Whale
+Jazz always last) plus Auto (genre named in the Suno style text, else audio guess and album vote) and a
+neutral fallback; each recipe sets target loudness, tone, 3-band compression, glue, warm saturation,
+transient punch and a width limited by the song's own stereo. AI-artifact cleanup (clicks, rumble, dynamic
+harshness and sibilance, static metallic resonances, high-frequency stereo swirl) with a live
+"defects removed" counter per song and in total. Output WAV 44.1 kHz / 24-bit, MP3 320 kbit/s or both,
+to `РЕЛИЗ` next to the songs or a chosen folder (remembered), never overwriting; `ОТЧЁТ.txt` report;
+loudness-matched before/after listening; progress with percent for every song and overall.
+`true_peak_limit` accepts a precomputed envelope and a fast unverified mode. Versus: an album folder is
+listed as separate songs instead of one song with many versions. User guide:
+docs/RELEASE_ONE_CLICK_GUIDE_RU.pdf.
+
 New main window (`srm/gui/flow.py`) and album pipeline (`srm/service/pipeline.py`): open a folder and
 every album appears (an album folder gives one album; `_*` and service folders are skipped); six ordered
 stages - analysis, versions, repair, mastering, listening, release - each with its own button, plus AUTO

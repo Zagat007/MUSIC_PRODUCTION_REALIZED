@@ -257,6 +257,10 @@ class VersusWindow(QMainWindow):
         lay.addStretch()
 
     def _page_groups(self, lay):
+        self.groups_note = label("", "Muted")
+        self.groups_note.setWordWrap(True)
+        self.groups_note.hide()
+        lay.addWidget(self.groups_note)
         self.groups_table = self._table(["Песня", "Версий", "Статус", "Победитель", "Папка"], stretch=0)
         self.groups_table.doubleClicked.connect(lambda _: self.open_selected_group())
         lay.addWidget(self.groups_table, 1)
@@ -473,21 +477,35 @@ class VersusWindow(QMainWindow):
 
     def open_folder(self, folder: str):
         try:
-            self.groups = C.discover_groups(folder)
+            self.groups = C.discover_groups(folder, singles=True)
         except C.VersusError as exc:
             QMessageBox.warning(self, APP_TITLE, str(exc))
             return
         self.root = str(folder)
         self.store.set_value("last_folder", self.root)
+        note = ""
+        how = ("Чтобы сравнить варианты песни, положите их рядом в одну папку с названиями, которые отличаются "
+               "только номером версии: «Песня 1», «Песня 2», «Песня (3)», «Песня v2».")
+        ready = sum(1 for g in self.groups if len(g["files"]) >= 2)
         if not self.groups:
-            self.status.showMessage("В папке не найдено песен с двумя и более версиями.")
+            note = "В папке не найдено аудиофайлов.\n" + how
+            self.status.showMessage("В папке не найдено аудиофайлов.")
+        elif not ready:
+            note = (f"Песен в папке: {len(self.groups)}, у каждой по одному файлу — сравнивать пока нечего.\n" + how)
+            self.status.showMessage("В папке нет песен с двумя и более версиями.")
+        elif ready < len(self.groups):
+            note = (f"Песен: {len(self.groups)}, из них с несколькими версиями: {ready}. "
+                    "Остальные сравнить нельзя — у них один файл.")
+        self.groups_note.setText(note)
+        self.groups_note.setVisible(bool(note))
         self.go(1)
 
     def refresh_groups(self):
         self.groups_table.setRowCount(len(self.groups))
         for r, g in enumerate(self.groups):
             s = self.store.active(g["key"])
-            vals = [g["name"], len(g["files"]), s["status"] if s else C.NOT_STARTED,
+            single = len(g["files"]) < 2
+            vals = [g["name"], len(g["files"]), s["status"] if s else C.ONE_VERSION if single else C.NOT_STARTED,
                     (s or {}).get("winner") or "", g["folder"]]
             for c, v in enumerate(vals):
                 self.groups_table.setItem(r, c, _item(v))
@@ -500,6 +518,12 @@ class VersusWindow(QMainWindow):
             return
         group = self.groups[rows[0]]
         existing = self.store.active(group["key"])
+        if len(group["files"]) < 2 and not existing:
+            QMessageBox.information(
+                self, APP_TITLE, f"У песни «{group['name']}» только один файл — сравнивать не с чем.\n\n"
+                "Положите рядом другие её варианты с тем же названием и номером версии "
+                f"(«{group['name']} 2», «{group['name']} 3») и нажмите «Обновить список».")
+            return
         if existing and not restart:
             self.load_session(existing["id"])
             return

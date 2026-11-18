@@ -53,6 +53,7 @@ DEFAULT_SETTINGS = {
 
 NOT_STARTED, IN_PROGRESS, NEED_FINAL, WINNER, APPLIED = (
     "НЕ НАЧАТО", "В ПРОЦЕССЕ", "НУЖЕН ФИНАЛ", "ПОБЕДИТЕЛЬ ОПРЕДЕЛЁН", "РЕЗУЛЬТАТ ПРИМЕНЁН")
+ONE_VERSION = "ОДНА ВЕРСИЯ"
 OK, REJECTED_SHORT, REJECTED_CORRUPT, DUPLICATE = (
     "ДОПУЩЕНА", "НЕ ДОПУЩЕНА — МЕНЬШЕ 2 МИНУТ", "НЕ ДОПУЩЕНА — ФАЙЛ ПОВРЕЖДЁН", "ДУБЛЬ")
 MODES = {"round_robin": "Полный круг", "tournament": "Быстрый турнир", "selected": "Сравнение выбранных"}
@@ -85,11 +86,25 @@ def song_title(stem: str) -> str:
     return s
 
 
-def discover_groups(root: str | Path, max_depth: int = 5) -> list[dict]:
+def looks_like_album(files: list[Path]) -> bool:
+    """True for a track list ('01 — A', '02 — B', ...): numbered files with different numbers and titles."""
+    numbers = [int(re.match(r"\s*(\d+)", f.stem).group(1)) for f in files if _TRACK_NO.match(f.stem)]
+    return len(numbers) >= 2 and len(numbers) * 2 >= len(files) and len(set(numbers)) == len(numbers)
+
+
+def count_audio(folder: str | Path) -> int:
+    folder = Path(folder)
+    return sum(1 for f in folder.iterdir() if f.is_file() and f.suffix.lower() in AUDIO_EXT) if folder.is_dir() else 0
+
+
+def discover_groups(root: str | Path, max_depth: int = 5, singles: bool = False) -> list[dict]:
     """Find groups of two or more versions of one song under ``root``.
 
     Files in one folder whose names differ only by a version suffix form a group. A folder the
-    user picked directly is treated as one group even when its files have unrelated names.
+    user picked directly is treated as one group even when its files have unrelated names -
+    unless it is an album track list (different songs, one file each), which has nothing to compare.
+    With ``singles`` the songs that have only one file are listed too (one file each), so an album
+    shows all its tracks; they cannot be compared until a second version appears.
     """
     root = Path(root)
     if not root.is_dir():
@@ -102,7 +117,7 @@ def discover_groups(root: str | Path, max_depth: int = 5) -> list[dict]:
             if depth < max_depth else []
         files = sorted((here / f for f in filenames if Path(f).suffix.lower() in AUDIO_EXT),
                        key=lambda p: natural_key(p.name))
-        if len(files) < 2:
+        if len(files) < (1 if singles else 2):
             continue
         clusters: dict[str, list[Path]] = {}
         titles: dict[str, str] = {}
@@ -112,8 +127,10 @@ def discover_groups(root: str | Path, max_depth: int = 5) -> list[dict]:
             clusters.setdefault(key, []).append(f)
             titles.setdefault(key, title)
         found = [(titles[k], v) for k, v in clusters.items() if len(v) >= 2]
-        if not found and here == root:
+        if not found and here == root and len(files) >= 2 and not looks_like_album(files):
             found = [(here.name, files)]
+        elif singles:
+            found = [(titles[k], v) for k, v in clusters.items()]
         for title, members in found:
             groups.append({"name": title, "folder": str(here), "files": [str(m) for m in members],
                            "key": f"{os.path.normcase(str(here))}|{title.casefold()}"})
